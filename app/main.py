@@ -1,7 +1,13 @@
+# Import necessary libraries and modules
+from dotenv import load_dotenv
+load_dotenv()   
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from datetime import datetime
+
+from app.api.endpoints import boundaries_router
 
 # Import your future modules here. For now, we'll create placeholders.
 # from app.db.session import get_db
@@ -21,6 +27,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(boundaries_router, prefix="/api")
 
 @app.get("/")
 async def root():

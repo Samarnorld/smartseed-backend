@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 .idea/
 *.sqlite3
+secrets/firebase-admin.json
