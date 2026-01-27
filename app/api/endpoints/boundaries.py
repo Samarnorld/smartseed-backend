@@ -1,9 +1,7 @@
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 from pathlib import Path
 import json
-
-from app.api.deps import get_current_user 
 
 router = APIRouter(tags=["Boundaries"])
 
@@ -12,10 +10,7 @@ DATA_DIR = BASE_DIR / "data" / "boundaries"
 
 
 @router.get("/boundaries/counties/{county_name}")
-def get_county_boundary(
-    county_name: str,
-    user=Depends(get_current_user),
-):
+def get_county_boundary(county_name: str):
     if county_name.lower() != "nandi":
         return JSONResponse(
             status_code=404,
@@ -29,10 +24,7 @@ def get_county_boundary(
 
 
 @router.get("/boundaries/wards")
-def get_wards(
-    county: str = Query(...),
-    user=Depends(get_current_user),  
-):
+def get_wards(county: str = Query(...)):
     if county.lower() != "nandi":
         return JSONResponse(
             status_code=404,
