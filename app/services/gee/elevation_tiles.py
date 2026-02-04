@@ -15,20 +15,20 @@ def get_elevation_tiles(geometry: ee.Geometry) -> dict:
     )
 
     vis_params = {
-        "min": 0,
-        "max": 3000,
-        "palette": [
-            "#081d58",
-            "#253494",
-            "#225ea8",
-            "#1d91c0",
-            "#41b6c4",
-            "#7fcdbb",
-            "#c7e9b4",
-            "#edf8b1",
-            "#ffffd9"
-        ]
-    }
+    "min": 0,
+    "max": 3000,
+    "palette": [
+        "#0b3d02",  # dark green lowlands
+        "#1f7a1f",
+        "#4caf50",
+        "#cddc39",
+        "#ffeb3b",
+        "#ff9800",
+        "#ff5722",
+        "#795548",
+        "#ffffff"   # mountain peaks
+    ]
+}
 
     map_id = dem.getMapId(vis_params)
 
