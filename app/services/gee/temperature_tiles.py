@@ -9,8 +9,7 @@ def get_temperature_tiles(
     end_date: str
 ) -> dict:
     """
-    Returns Earth Engine map tiles for mean 2m air temperature (°C)
-    within the given geometry and date range.
+    Returns Earth Engine XYZ tile URL for mean 2m air temperature (°C)
     """
 
     collection = (
@@ -19,29 +18,27 @@ def get_temperature_tiles(
         .select("temperature_2m")
     )
 
-    # Average temperature across the selected time period
-    temp_img = collection.mean().clip(geometry)
+    # Mean temperature and clip to requested geometry
+    temp_c = collection.mean().subtract(273.15).clip(geometry)
 
-    # Convert Kelvin → Celsius
-    temp_c = temp_img.subtract(273.15)
-
-    # Better visualization range for East Africa
     vis_params = {
         "min": 0,
         "max": 40,
         "palette": [
-            "#2c7bb6",  # cool
+            "#2c7bb6",
             "#abd9e9",
             "#ffffbf",
             "#fdae61",
-            "#d7191c"   # hot
+            "#d7191c"
         ]
     }
 
-    map_id = temp_c.getMapId(vis_params)
+    map_dict = ee.Image(temp_c).getMapId(vis_params)
+
+    # CRITICAL FIX — use the FULL tile URL Earth Engine provides
+    tile_url = map_dict["tile_fetcher"].url_format
 
     return {
-        "mapid": map_id["mapid"],  # optional metadata
-        "tile_url": map_id["tile_fetcher"].url_format,  
+        "tile_url": tile_url,
         "vis_params": vis_params
     }
