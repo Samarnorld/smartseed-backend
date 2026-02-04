@@ -9,7 +9,8 @@ def get_temperature_tiles(
     end_date: str
 ) -> dict:
     """
-    Returns map tiles for mean 2m air temperature (°C)
+    Returns Earth Engine map tiles for mean 2m air temperature (°C)
+    within the given geometry and date range.
     """
 
     collection = (
@@ -18,36 +19,29 @@ def get_temperature_tiles(
         .select("temperature_2m")
     )
 
-    # Mean temperature over time
+    # Average temperature across the selected time period
     temp_img = collection.mean().clip(geometry)
 
     # Convert Kelvin → Celsius
     temp_c = temp_img.subtract(273.15)
 
+    # Better visualization range for East Africa
     vis_params = {
-        "min": 10,
-        "max": 35,
+        "min": 0,
+        "max": 40,
         "palette": [
-            "#2c7bb6",
+            "#2c7bb6",  # cool
             "#abd9e9",
             "#ffffbf",
             "#fdae61",
-            "#d7191c"
+            "#d7191c"   # hot
         ]
     }
 
     map_id = temp_c.getMapId(vis_params)
 
-    # Get tile URL template
-    tile_url = map_id["tile_fetcher"].url_format
-
-    # Ensure token is attached (REQUIRED for browser access)
-    if "token=" not in tile_url:
-        tile_url = f"{tile_url}?token={map_id['token']}"
-
     return {
-        "mapid": map_id["mapid"],
-        "token": map_id["token"],
-        "tile_url": tile_url,
+        "mapid": map_id["mapid"],  # optional metadata
+        "tile_url": map_id["tile_fetcher"].url_format,  
         "vis_params": vis_params
     }

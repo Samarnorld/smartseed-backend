@@ -16,6 +16,11 @@ def temperature_tiles(
     start_date: str = Query(..., description="YYYY-MM-DD"),
     end_date: str = Query(..., description="YYYY-MM-DD")
 ):
+    """
+    Returns Earth Engine tile URL for mean air temperature
+    over the selected geometry and date range.
+    """
+
     tiles = get_temperature_tiles(
         geometry=geometry,
         start_date=start_date,
@@ -24,7 +29,7 @@ def temperature_tiles(
 
     return {
         "status": "success",
-        "dataset": "ERA5-Land",
+        "dataset": "ERA5-Land Daily Aggregated",
         "units": "°C",
         **tiles
     }
