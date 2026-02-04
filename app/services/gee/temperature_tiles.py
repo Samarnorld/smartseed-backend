@@ -38,9 +38,16 @@ def get_temperature_tiles(
 
     map_id = temp_c.getMapId(vis_params)
 
+    # Get tile URL template
+    tile_url = map_id["tile_fetcher"].url_format
+
+    # Ensure token is attached (REQUIRED for browser access)
+    if "token=" not in tile_url:
+        tile_url = f"{tile_url}?token={map_id['token']}"
+
     return {
         "mapid": map_id["mapid"],
         "token": map_id["token"],
-        "tile_url": map_id["tile_fetcher"].url_format,
+        "tile_url": tile_url,
         "vis_params": vis_params
     }
