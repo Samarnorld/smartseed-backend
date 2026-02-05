@@ -1,45 +1,43 @@
 import ee
 
-SENTINEL_2 = "COPERNICUS/S2_SR"
+# Sentinel-2 surface reflectance
+S2_COLLECTION = "COPERNICUS/S2_SR_HARMONIZED"
 
 
-def get_ndvi_summary(
+def get_mean_ndvi(
     geometry: ee.Geometry,
     start_date: str,
     end_date: str
 ) -> dict:
     """
-    Returns mean NDVI for a given geometry and date range.
-    RAW NDVI values, no interpretation.
+    Returns mean NDVI over a geometry for a given time range.
     """
 
     collection = (
-        ee.ImageCollection(SENTINEL_2)
+        ee.ImageCollection(S2_COLLECTION)
         .filterBounds(geometry)
         .filterDate(start_date, end_date)
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
     )
 
-    def add_ndvi(image):
-        ndvi = image.normalizedDifference(["B8", "B4"]).rename("NDVI")
-        return image.addBands(ndvi)
+    # Compute NDVI per image
+    ndvi_collection = collection.map(
+        lambda img: img.normalizedDifference(["B8", "B4"]).rename("NDVI")
+    )
 
-    ndvi_collection = collection.map(add_ndvi)
+    mean_ndvi = ndvi_collection.mean()
 
-    ndvi_mean = ndvi_collection.select("NDVI").mean()
-
-    stats = ndvi_mean.reduceRegion(
+    stats = mean_ndvi.reduceRegion(
         reducer=ee.Reducer.mean(),
         geometry=geometry,
         scale=10,
-        bestEffort=True
+        bestEffort=True,
+        maxPixels=1e13
     )
 
     return {
-        "ndvi_mean": stats.get("NDVI").getInfo(),
+        "mean_ndvi": stats.get("NDVI").getInfo(),
         "start_date": start_date,
         "end_date": end_date,
-        "scale_m": 10,
-        "aggregation": "mean",
-        "source": "Sentinel-2 SR (COPERNICUS)"
+        "source": "Sentinel-2 (COPERNICUS)"
     }
