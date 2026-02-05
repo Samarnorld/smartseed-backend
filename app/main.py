@@ -18,7 +18,6 @@ from app.api.endpoints.temperature_monthly import router as temperature_monthly_
 from app.api.endpoints.temperature_anomaly import router as temperature_anomaly_router
 from app.api.endpoints.elevation import router as elevation_router
 from app.api.endpoints.elevation_tiles import router as elevation_tiles_router
-from app.api.endpoints.ndvi import router as ndvi_router
 from app.api.endpoints.soil import router as soil_router
 from app.core.gee_auth import init_gee
 
@@ -58,7 +57,6 @@ app.include_router(temperature_monthly_router, prefix="/api")
 app.include_router(temperature_anomaly_router, prefix="/api")
 app.include_router(elevation_router, prefix="/api")
 app.include_router(elevation_tiles_router, prefix="/api")
-app.include_router(ndvi_router, prefix="/api")
 app.include_router(soil_router, prefix="/api")
 
 @app.get("/")
