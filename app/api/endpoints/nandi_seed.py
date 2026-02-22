@@ -1,5 +1,4 @@
-# app/api/endpoints/nandi_seed.py
-
+# api/endpoints/nandi_seed.py
 from fastapi import APIRouter
 from app.services.nandi.engine import analyze
 
