@@ -150,34 +150,47 @@ class NandiWardEngine:
         }
 
         fertiliser_text = recomm_row.get(f"{prefix}Fertiliser")
-
         # -------------------------
-        # Farmer Decision Summary
+        # Farmer Decision Summary (Human-Readable)
         # -------------------------
         decision_summary = None
 
         if top_seed_name and suitability_percent:
 
+            season_readable = "Long Rains season" if season == "LongRains" else "Short Rains season"
+
             decision_summary = (
-                f"For {season}, plant {top_seed_name}. "
-                f"Suitability is {suitability_percent}%. "
-                f"Risk level is {risk_level}. "
+                f"In {ward_name}, the upcoming {season_readable} looks "
+                f"{'favourable' if suitability_percent >= 70 else 'moderately favourable' if suitability_percent >= 50 else 'challenging'} "
+                f"for maize production. "
             )
+
+            decision_summary += (
+                f"We recommend planting {top_seed_name}, "
+                f"as overall land suitability is {suitability_percent}%. "
+            )
+
+            if risk_level != "Unknown":
+                decision_summary += (
+                    f"Production risk is considered {risk_level.lower()}, "
+                    f"with an estimated failure probability of {round(failure_pct, 2)}%. "
+                )
 
             if expected_with_fert:
                 decision_summary += (
-                    f"Expected yield with fertiliser: {expected_with_fert}. "
+                    f"With proper fertiliser application, yields are expected "
+                    f"to range between {expected_with_fert}. "
                 )
 
-            if recomm_row.get(f"{prefix}Planting_Window"):
-                decision_summary += recomm_row.get(f"{prefix}Planting_Window") + " "
+            planting_window = recomm_row.get(f"{prefix}Planting_Window")
+            if planting_window:
+                decision_summary += planting_window + " "
 
             if confidence_tier:
                 decision_summary += (
-                    f"Confidence level: Tier {confidence_tier} "
-                    f"({confidence_score_percent}% uncertainty)."
+                    f"This recommendation is based on a Tier {confidence_tier} "
+                    f"confidence level ({confidence_score_percent}% model uncertainty)."
                 )
-
         # -------------------------
         # Final Response
         # -------------------------
