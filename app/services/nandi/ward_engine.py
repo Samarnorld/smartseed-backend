@@ -1,3 +1,4 @@
+# app/services/nandi/ward_engine.py
 import pandas as pd
 import os
 import re
@@ -23,27 +24,18 @@ class NandiWardEngine:
     @staticmethod
     def get_ward_recommendation(ward_name: str, season: str) -> Dict:
 
-        # -------------------------
-        # File existence check
-        # -------------------------
         if not os.path.exists(WARD_FACTORS_PATH):
             return {"error": "Ward factors file not found"}
 
         if not os.path.exists(WARD_RECOMM_PATH):
             return {"error": "Ward recommendation file not found"}
 
-        # -------------------------
-        # Load data
-        # -------------------------
         factors_df = pd.read_csv(WARD_FACTORS_PATH)
         recomm_df = pd.read_csv(WARD_RECOMM_PATH)
 
         factors_df.columns = [c.strip() for c in factors_df.columns]
         recomm_df.columns = [c.strip() for c in recomm_df.columns]
 
-        # -------------------------
-        # Filter ward (case-insensitive)
-        # -------------------------
         factors_filtered = factors_df[
             factors_df["Ward"].str.lower() == ward_name.lower()
         ]
@@ -64,39 +56,59 @@ class NandiWardEngine:
         # Suitability
         # -------------------------
         suitability_text = recomm_row.get(f"{prefix}Suitability", "")
-
         match = re.search(r"(\d+(\.\d+)?)%", str(suitability_text))
         suitability_percent = float(match.group(1)) if match else None
 
         # -------------------------
-        # ROBUST seed parsing
+        # Seeds Parsing
         # -------------------------
         seeds_raw = recomm_row.get(f"{prefix}Seeds", "")
         seed_list = []
 
         if isinstance(seeds_raw, str) and seeds_raw.strip():
 
-            # Remove intro label if present
             seeds_clean = seeds_raw.replace(
                 "Top recommended seed varieties:", ""
             ).strip()
 
-            # Split safely between seed blocks
             parts = seeds_clean.split(") |")
 
             for part in parts:
                 part = part.strip()
-
-                # Ensure closing bracket
                 if not part.endswith(")"):
                     part = part + ")"
-
                 seed_list.append(part)
 
         # -------------------------
-        # Risk
+        # Yield Projection (from first seed)
+        # -------------------------
+        expected_without_fert = None
+        expected_with_fert = None
+
+        if seed_list:
+            first_seed = seed_list[0]
+
+            match_no = re.search(
+                r"Expected w/o Fertiliser:\s*([\d\.\-\s]+t/Ha)",
+                first_seed
+            )
+
+            match_yes = re.search(
+                r"Expected w/ Fertiliser:\s*([\d\.\-\s]+t/Ha)",
+                first_seed
+            )
+
+            if match_no:
+                expected_without_fert = match_no.group(1).strip()
+
+            if match_yes:
+                expected_with_fert = match_yes.group(1).strip()
+
+        # -------------------------
+        # Risk & Confidence
         # -------------------------
         failure_pct = factors_row.get(f"{prefix}Overall_Failure_ward_pct")
+        uncertainty = factors_row.get(f"{prefix}Overall_Failure_uncertainty")
 
         if failure_pct is None:
             risk_level = "Unknown"
@@ -106,6 +118,18 @@ class NandiWardEngine:
             risk_level = "Moderate"
         else:
             risk_level = "Low"
+
+        # Confidence Tier
+        if uncertainty is None:
+            confidence_tier = None
+        elif uncertainty < 5:
+            confidence_tier = 1
+        elif uncertainty < 10:
+            confidence_tier = 2
+        elif uncertainty < 20:
+            confidence_tier = 3
+        else:
+            confidence_tier = 4
 
         # -------------------------
         # Soil
@@ -117,7 +141,7 @@ class NandiWardEngine:
         }
 
         # -------------------------
-        # Final response
+        # Final Response
         # -------------------------
         return {
             "ward": ward_name,
@@ -127,7 +151,11 @@ class NandiWardEngine:
                 "suitability_text": suitability_text,
                 "overall_failure_probability_percent": failure_pct,
                 "recommended_varieties": seed_list,
-                "planting_window": recomm_row.get(f"{prefix}Planting_Window")
+                "planting_window": recomm_row.get(f"{prefix}Planting_Window"),
+                "yield_projection": {
+                    "expected_without_fertiliser": expected_without_fert,
+                    "expected_with_fertiliser": expected_with_fert
+                }
             },
             "fertilizer": {
                 "soil_values": soil_values,
@@ -135,6 +163,8 @@ class NandiWardEngine:
             },
             "advisory": {
                 "risk_level": risk_level,
+                "confidence_score_percent": uncertainty,
+                "confidence_tier": confidence_tier,
                 "risk_breakdown_percent": {
                     "cold": factors_row.get(f"{prefix}Cold_Risk_ward_pct"),
                     "heat": factors_row.get(f"{prefix}Heat_Risk_ward_pct"),
