@@ -23,21 +23,45 @@ class NandiWardEngine:
     @staticmethod
     def get_ward_recommendation(ward_name: str, season: str) -> Dict:
 
+        # -------------------------
+        # File existence check
+        # -------------------------
+        if not os.path.exists(WARD_FACTORS_PATH):
+            return {"error": "Ward factors file not found"}
+
+        if not os.path.exists(WARD_RECOMM_PATH):
+            return {"error": "Ward recommendation file not found"}
+
+        # -------------------------
+        # Load data
+        # -------------------------
         factors_df = pd.read_csv(WARD_FACTORS_PATH)
         recomm_df = pd.read_csv(WARD_RECOMM_PATH)
 
-        factors_row = factors_df[
-            factors_df["Ward"].str.lower() == ward_name.lower()
-        ].iloc[0]
+        factors_df.columns = [c.strip() for c in factors_df.columns]
+        recomm_df.columns = [c.strip() for c in recomm_df.columns]
 
-        recomm_row = recomm_df[
+        # -------------------------
+        # Filter ward (case-insensitive)
+        # -------------------------
+        factors_filtered = factors_df[
+            factors_df["Ward"].str.lower() == ward_name.lower()
+        ]
+
+        recomm_filtered = recomm_df[
             recomm_df["Ward"].str.lower() == ward_name.lower()
-        ].iloc[0]
+        ]
+
+        if factors_filtered.empty or recomm_filtered.empty:
+            return {"error": "Ward not found"}
+
+        factors_row = factors_filtered.iloc[0]
+        recomm_row = recomm_filtered.iloc[0]
 
         prefix = "LR_" if season == "LongRains" else "SR_"
 
         # -------------------------
-        # Suitability (extract numeric %)
+        # Suitability
         # -------------------------
         suitability_text = recomm_row.get(f"{prefix}Suitability", "")
 
@@ -45,21 +69,31 @@ class NandiWardEngine:
         suitability_percent = float(match.group(1)) if match else None
 
         # -------------------------
-        # Seeds (split by |)
+        # Clean seed parsing
         # -------------------------
         seeds_raw = recomm_row.get(f"{prefix}Seeds", "")
 
-        if isinstance(seeds_raw, str):
-            seed_list = [s.strip() for s in seeds_raw.split("|")]
-        else:
-            seed_list = []
+        seed_list = []
+
+        if isinstance(seeds_raw, str) and seeds_raw.strip():
+            # Remove prefix text if present
+            seeds_clean = seeds_raw.replace(
+                "Top recommended seed varieties:", ""
+            ).strip()
+
+            # Split by pipe
+            seed_list = [
+                s.strip() for s in seeds_clean.split("|") if s.strip()
+            ]
 
         # -------------------------
         # Risk
         # -------------------------
         failure_pct = factors_row.get(f"{prefix}Overall_Failure_ward_pct")
 
-        if failure_pct > 50:
+        if failure_pct is None:
+            risk_level = "Unknown"
+        elif failure_pct > 50:
             risk_level = "High"
         elif failure_pct > 20:
             risk_level = "Moderate"
@@ -75,6 +109,9 @@ class NandiWardEngine:
             "texture_score": factors_row.get(f"{prefix}texture_score"),
         }
 
+        # -------------------------
+        # Final response
+        # -------------------------
         return {
             "ward": ward_name,
             "season": season,
