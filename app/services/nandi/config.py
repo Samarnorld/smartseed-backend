@@ -1,3 +1,4 @@
+# app/services/nandi/config.py
 import os
 
 BASE_PATH = os.getenv("NANDI_DATA_PATH", "02_NandiSeedRecommender2")
