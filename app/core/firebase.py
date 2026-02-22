@@ -1,20 +1,18 @@
 # app/core/firebase.py
+
 import firebase_admin
 from firebase_admin import credentials, auth
 import os
-import json
 
-service_account = os.getenv("FIREBASE_SERVICE_ACCOUNT")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, "secrets", "firebase-admin.json")
 
-if not service_account:
-    raise RuntimeError("FIREBASE_SERVICE_ACCOUNT not found in environment")
+if not os.path.exists(SERVICE_ACCOUNT_PATH):
+    raise RuntimeError("Firebase service account file not found")
 
-# Initialize Firebase only once
 if not firebase_admin._apps:
-    cred_dict = json.loads(service_account)
-    cred = credentials.Certificate(cred_dict)
+    cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
     firebase_admin.initialize_app(cred)
 
 def verify_token(id_token: str):
     return auth.verify_id_token(id_token)
-
