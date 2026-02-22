@@ -1,0 +1,11 @@
+venv/
+.env
+__pycache__/
+*.pyc
+.idea/
+*.sqlite3
+secrets/firebase-admin.json
+secrets/gee-service-account.json *.swp
+secrets/gee-service-account.json 
+02_NandiSeedRecommender2/
+*.tif

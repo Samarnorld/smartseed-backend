@@ -1,0 +1,140 @@
+Folder PATH listing
+Volume serial number is D016-E3FA
+C:.
+�   .env
+�   .gitignore
+�   full_structure.txt
+�   requirements.txt
+�   runtime.txt
+�   
++---app
+�   �   main.py
+�   �   __init__.py
+�   �   
+�   +---api
+�   �   �   deps.py
+�   �   �   __init__.py
+�   �   �   
+�   �   +---endpoints
+�   �   �   �   boundaries.py
+�   �   �   �   elevation.py
+�   �   �   �   elevation_tiles.py
+�   �   �   �   gee.py
+�   �   �   �   maize_suitability.py
+�   �   �   �   maize_timeseries.py
+�   �   �   �   nandi_seed.py
+�   �   �   �   ndvi.py
+�   �   �   �   ndvi_anomaly.py
+�   �   �   �   ndvi_climatology.py
+�   �   �   �   ndvi_tiles.py
+�   �   �   �   rainfall.py
+�   �   �   �   rainfall_anomaly.py
+�   �   �   �   rainfall_climatology.py
+�   �   �   �   rainfall_monthly.py
+�   �   �   �   rainfall_tiles.py
+�   �   �   �   soil_analysis.py
+�   �   �   �   soil_tiles.py
+�   �   �   �   temperature.py
+�   �   �   �   temperature_anomaly.py
+�   �   �   �   temperature_monthly.py
+�   �   �   �   temperature_tiles.py
+�   �   �   �   __init__.py
+�   �   �   �   
+�   �   �   +---__pycache__
+�   �   �           boundaries.cpython-313.pyc
+�   �   �           elevation.cpython-313.pyc
+�   �   �           elevation_tiles.cpython-313.pyc
+�   �   �           gee.cpython-313.pyc
+�   �   �           ndvi.cpython-313.pyc
+�   �   �           rainfall.cpython-313.pyc
+�   �   �           rainfall_anomaly.cpython-313.pyc
+�   �   �           rainfall_monthly.cpython-313.pyc
+�   �   �           rainfall_tiles.cpython-313.pyc
+�   �   �           soil.cpython-313.pyc
+�   �   �           temperature.cpython-313.pyc
+�   �   �           temperature_anomaly.cpython-313.pyc
+�   �   �           temperature_monthly.cpython-313.pyc
+�   �   �           temperature_tiles.cpython-313.pyc
+�   �   �           __init__.cpython-313.pyc
+�   �   �           
+�   �   +---__pycache__
+�   �           deps.cpython-313.pyc
+�   �           __init__.cpython-313.pyc
+�   �           
+�   +---core
+�   �   �   firebase.py
+�   �   �   gee_auth.py
+�   �   �   
+�   �   +---__pycache__
+�   �           firebase.cpython-313.pyc
+�   �           gee_auth.cpython-313.pyc
+�   �           
+�   +---db
+�   �       models.py
+�   �       __init__.py
+�   �       
+�   +---ml
+�   �       predict.py
+�   �       
+�   +---services
+�   �   +---gee
+�   �   �   �   baseline_agro_score.py
+�   �   �   �   elevation.py
+�   �   �   �   elevation_tiles.py
+�   �   �   �   geometry.py
+�   �   �   �   hybrid_ranking.py
+�   �   �   �   maize_suitability.py
+�   �   �   �   maize_timeseries.py
+�   �   �   �   ndvi.py
+�   �   �   �   ndvi_anomaly.py
+�   �   �   �   ndvi_climatology.py
+�   �   �   �   ndvi_tiles.py
+�   �   �   �   rainfall.py
+�   �   �   �   rainfall_anomaly.py
+�   �   �   �   rainfall_climatology.py
+�   �   �   �   rainfall_monthly.py
+�   �   �   �   rainfall_tiles.py
+�   �   �   �   seasonal_performance.py
+�   �   �   �   soil_calculations.py
+�   �   �   �   soil_config.py
+�   �   �   �   soil_intelligence.py
+�   �   �   �   soil_interpretation.py
+�   �   �   �   soil_raw.py
+�   �   �   �   soil_tiles.py
+�   �   �   �   temperature.py
+�   �   �   �   temperature_anomaly.py
+�   �   �   �   temperature_monthly.py
+�   �   �   �   temperature_tiles.py
+�   �   �   �   
+�   �   �   +---__pycache__
+�   �   �           elevation.cpython-313.pyc
+�   �   �           elevation_tiles.cpython-313.pyc
+�   �   �           geometry.cpython-313.pyc
+�   �   �           rainfall.cpython-313.pyc
+�   �   �           rainfall_anomaly.cpython-313.pyc
+�   �   �           rainfall_monthly.cpython-313.pyc
+�   �   �           rainfall_tiles.cpython-313.pyc
+�   �   �           soil.cpython-313.pyc
+�   �   �           temperature.cpython-313.pyc
+�   �   �           temperature_anomaly.cpython-313.pyc
+�   �   �           temperature_monthly.cpython-313.pyc
+�   �   �           temperature_tiles.cpython-313.pyc
+�   �   �           
+�   �   +---nandi
+�   �           raster_engine.py
+�   �           report_service.py
+�   �           seed_ranker.py
+�   �           
+�   +---__pycache__
+�           main.cpython-313.pyc
+�           __init__.cpython-313.pyc
+�           
++---data
+�   +---boundaries
+�           nandi_county.geojson
+�           nandi_wards.geojson
+�           
++---secrets
+        firebase-admin.json
+        gee-service-account.json
+        
