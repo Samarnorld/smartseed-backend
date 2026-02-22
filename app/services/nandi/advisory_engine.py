@@ -1,17 +1,10 @@
 # app/services/nandi/advisory_engine.py
-# NandiAdvisoryEngine is responsible for assessing the suitability and risk
-# of maize cultivation at a given location and season based on precomputed
-# raster data. It samples the relevant rasters to provide a comprehensive
-# advisory report, including suitability score, uncertainty, confidence score,
-# confidence tier, overall failure probability, and a breakdown of risk factors.
 
 from typing import Dict
 from .config import suitability_paths, risk_factor_paths
 from .raster_sampling import sample_raster
 
-
 class NandiAdvisoryEngine:
-
     @staticmethod
     def assess(lon: float, lat: float, season: str) -> Dict:
 
@@ -42,10 +35,10 @@ class NandiAdvisoryEngine:
         else:
             risk_level = "High"
 
-        # Convert continuous confidence score into tier
+        # Confidence tier classification
         if confidence_score is not None:
             if confidence_score < 0.05:
-                confidence_tier = 1  # Very High Confidence
+                confidence_tier = 1
             elif confidence_score < 0.1:
                 confidence_tier = 2
             elif confidence_score < 0.2:
@@ -55,6 +48,35 @@ class NandiAdvisoryEngine:
         else:
             confidence_tier = None
 
+        # Human-readable explanation
+        dominant_risk = None
+        if breakdown:
+            dominant_risk = max(
+                breakdown,
+                key=lambda k: breakdown[k] if breakdown[k] is not None else -1
+            )
+
+        explanation = ""
+
+        if risk_level == "Low":
+            explanation = "Climate conditions are favorable with low extreme event probability."
+        elif risk_level == "Moderate":
+            explanation = "Moderate production risk detected."
+        else:
+            explanation = "High production risk due to elevated extreme climate probabilities."
+
+        if dominant_risk:
+            explanation += f" The dominant stress factor is {dominant_risk}."
+
+        if confidence_tier == 1:
+            explanation += " Confidence in this recommendation is very high."
+        elif confidence_tier == 2:
+            explanation += " Confidence level is high."
+        elif confidence_tier == 3:
+            explanation += " Moderate uncertainty is present."
+        elif confidence_tier == 4:
+            explanation += " Elevated uncertainty detected."
+
         return {
             "suitability": round(suitability, 3),
             "uncertainty": round(uncertainty or 0, 3),
@@ -63,4 +85,5 @@ class NandiAdvisoryEngine:
             "overall_failure_probability": round(overall_failure or 0, 3),
             "risk_level": risk_level,
             "risk_breakdown": breakdown,
+            "explanation": explanation
         }
