@@ -137,38 +137,35 @@ class NandiCountyEngine:
         # County Bulletin Summary
         # -------------------------
         season_readable = "Long Rains season" if season == "LongRains" else "Short Rains season"
-
         county_summary = (
-            f"Across Nandi County, the upcoming {season_readable} is expected "
-            f"to be {suitability_class.lower()} for maize production. "
+            f"For the upcoming {season_readable}, maize production conditions "
+            f"across Nandi County are assessed as {suitability_class.lower()}. "
         )
 
         if suitability_percent:
             county_summary += (
-                f"Average land suitability is {suitability_percent}%, "
+                f"Average land suitability stands at {suitability_percent}%, "
             )
 
         if failure_percent:
             county_summary += (
-                f"with an overall production risk of {failure_percent}%. "
+                f"with a projected seasonal production risk of {failure_percent}%. "
             )
 
         county_summary += (
-            f"The dominant limiting factor this season is {dominant_factor}. "
+            f"The primary climatic constraint this season is {dominant_factor}. "
         )
 
         if top_seed:
             county_summary += (
-                f"The most consistently recommended maize variety across wards "
-                f"is {top_seed}. "
+                f"The most widely recommended maize variety across wards is {top_seed}. "
             )
 
         if yield_with:
             county_summary += (
-                f"With proper fertiliser application, expected yields "
-                f"range between {yield_with}. "
+                f"Under proper fertiliser management, expected yields range between "
+                f"{yield_with}. "
             )
-
         # -------------------------
         # Final Response
         # -------------------------
