@@ -69,22 +69,29 @@ class NandiWardEngine:
         suitability_percent = float(match.group(1)) if match else None
 
         # -------------------------
-        # Clean seed parsing
+        # ROBUST seed parsing
         # -------------------------
         seeds_raw = recomm_row.get(f"{prefix}Seeds", "")
-
         seed_list = []
 
         if isinstance(seeds_raw, str) and seeds_raw.strip():
-            # Remove prefix text if present
+
+            # Remove intro label if present
             seeds_clean = seeds_raw.replace(
                 "Top recommended seed varieties:", ""
             ).strip()
 
-            # Split by pipe
-            seed_list = [
-                s.strip() for s in seeds_clean.split("|") if s.strip()
-            ]
+            # Split safely between seed blocks
+            parts = seeds_clean.split(") |")
+
+            for part in parts:
+                part = part.strip()
+
+                # Ensure closing bracket
+                if not part.endswith(")"):
+                    part = part + ")"
+
+                seed_list.append(part)
 
         # -------------------------
         # Risk
