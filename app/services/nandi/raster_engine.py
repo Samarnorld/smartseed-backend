@@ -15,8 +15,8 @@ def _read_single_pixel(tif_path: str, lat: float, lon: float):
         row, col = src.index(lon, lat)
         value = src.read(1)[row, col]
 
+    # Convert numpy type to Python float
     return float(value)
-
 
 def get_suitability(lat: float, lon: float, season: str = "LongRains") -> Dict:
     mean_path = os.path.join(BASE_PATH, f"Suit_Mean_{season}.tif")
@@ -31,7 +31,6 @@ def get_suitability(lat: float, lon: float, season: str = "LongRains") -> Dict:
         "season": season
     }
 
-
 def get_risks(lat: float, lon: float, season: str = "LongRains") -> Dict:
     mean_path = os.path.join(BASE_PATH, f"Risks_Mean_{season}.tif")
     std_path = os.path.join(BASE_PATH, f"Risks_Std_{season}.tif")
@@ -41,11 +40,15 @@ def get_risks(lat: float, lon: float, season: str = "LongRains") -> Dict:
 
     with rasterio.open(mean_path) as mean_src:
         row, col = mean_src.index(lon, lat)
-        risk_means = mean_src.read(window=((row, row+1), (col, col+1)))[:, 0, 0]
+        risk_means = mean_src.read(
+            window=((row, row+1), (col, col+1))
+        )[:, 0, 0].astype(float)
 
     with rasterio.open(std_path) as std_src:
         row, col = std_src.index(lon, lat)
-        risk_stds = std_src.read(window=((row, row+1), (col, col+1)))[:, 0, 0]
+        risk_stds = std_src.read(
+            window=((row, row+1), (col, col+1))
+        )[:, 0, 0].astype(float)
 
     labels = [
         "cold_risk",
@@ -59,8 +62,8 @@ def get_risks(lat: float, lon: float, season: str = "LongRains") -> Dict:
 
     for i, label in enumerate(labels):
         results[label] = {
-            "probability_percent": round(risk_means[i] * 100, 2),
-            "uncertainty": round(risk_stds[i], 4)
+            "probability_percent": round(float(risk_means[i]) * 100, 2),
+            "uncertainty": round(float(risk_stds[i]), 4)
         }
 
     return results
