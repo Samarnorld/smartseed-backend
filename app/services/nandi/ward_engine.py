@@ -12,6 +12,12 @@ WARD_FACTORS_PATH = os.path.join(
     "Nandi_Ward_Factors.csv"
 )
 
+WARD_RECOMM_PATH = os.path.join(
+    BASE_PATH,
+    "WardAggregatedData",
+    "Nandi_Ward_Recommendations.csv"
+)
+
 
 class NandiWardEngine:
 
@@ -21,65 +27,94 @@ class NandiWardEngine:
         if not os.path.exists(WARD_FACTORS_PATH):
             return {"error": "Ward factors file not found"}
 
-        df = pd.read_csv(WARD_FACTORS_PATH)
+        if not os.path.exists(WARD_RECOMM_PATH):
+            return {"error": "Ward recommendation file not found"}
 
-        df.columns = [c.strip() for c in df.columns]
+        factors_df = pd.read_csv(WARD_FACTORS_PATH)
+        recomm_df = pd.read_csv(WARD_RECOMM_PATH)
 
-        ward_df = df[df["Ward"].str.lower() == ward_name.lower()]
+        # Normalize column names
+        factors_df.columns = [c.strip() for c in factors_df.columns]
+        recomm_df.columns = [c.strip() for c in recomm_df.columns]
 
-        if ward_df.empty:
+        # Filter ward
+        factors_row = factors_df[
+            factors_df["Ward"].str.lower() == ward_name.lower()
+        ]
+
+        recomm_row = recomm_df[
+            recomm_df["Ward"].str.lower() == ward_name.lower()
+        ]
+
+        if factors_row.empty or recomm_row.empty:
             return {"error": "Ward not found"}
 
-        row = ward_df.iloc[0]
+        factors_row = factors_row.iloc[0]
+        recomm_row = recomm_row.iloc[0]
 
         prefix = "LR_" if season == "LongRains" else "SR_"
 
         # -------------------------
-        # Suitability & Risk
+        # Suitability & Seeds
         # -------------------------
-        suitability = row.get(f"{prefix}Suitability_Mean")
-        failure = row.get(f"{prefix}Failure_Probability")
+        suitability = recomm_row.get(f"{prefix}Suitability")
+        seeds = recomm_row.get(f"{prefix}Seeds")
+        fertiliser_advice = recomm_row.get(f"{prefix}Fertiliser")
+        risk_warning_text = recomm_row.get(f"{prefix}Risk_Warnings")
 
-        cold = row.get(f"{prefix}Cold_Risk_ward_pct")
-        heat = row.get(f"{prefix}Heat_Risk_ward_pct")
-        drought = row.get(f"{prefix}Drought_Risk_ward_pct")
-
-        # -------------------------
-        # Soil values (ward averages)
-        # -------------------------
-        soil_values = {
-            "stone_content": row.get(f"{prefix}stone_content_ward_avg"),
-            "bedrock_depth": row.get(f"{prefix}bedrock_depth_ward_avg"),
-            "texture_score": row.get(f"{prefix}texture_score"),
-        }
+        # Convert seed string to list if needed
+        if isinstance(seeds, str):
+            seed_list = [s.strip() for s in seeds.split(",")]
+        else:
+            seed_list = []
 
         # -------------------------
-        # Risk classification
+        # Risk breakdown
         # -------------------------
-        if failure is None:
+        failure_pct = factors_row.get(f"{prefix}Overall_Failure_ward_pct")
+        cold = factors_row.get(f"{prefix}Cold_Risk_ward_pct")
+        heat = factors_row.get(f"{prefix}Heat_Risk_ward_pct")
+        drought = factors_row.get(f"{prefix}Drought_Risk_ward_pct")
+
+        if failure_pct is None:
             risk_level = "Unknown"
-        elif failure > 50:
+        elif failure_pct > 50:
             risk_level = "High"
-        elif failure > 20:
+        elif failure_pct > 20:
             risk_level = "Moderate"
         else:
             risk_level = "Low"
 
+        # -------------------------
+        # Soil values
+        # -------------------------
+        soil_values = {
+            "stone_content": factors_row.get(f"{prefix}stone_content_ward_avg"),
+            "bedrock_depth": factors_row.get(f"{prefix}bedrock_depth_ward_avg"),
+            "texture_score": factors_row.get(f"{prefix}texture_score"),
+        }
+
+        # -------------------------
+        # Human explanation
+        # -------------------------
         explanation = (
-            f"{ward_name} ward shows {risk_level} seasonal production risk "
-            f"during {season}. "
-            f"Drought risk: {drought}%, Heat risk: {heat}%, Cold risk: {cold}%."
+            f"{ward_name} ward has {risk_level} production risk during {season}. "
+            f"Overall failure probability is {round(failure_pct,2)}%. "
+            f"Recommended seeds: {', '.join(seed_list)}."
         )
 
         return {
             "ward": ward_name,
             "season": season,
             "seed_recommendation": {
-                "mean_suitability_score": suitability,
-                "overall_failure_probability_percent": failure
+                "ward_suitability": suitability,
+                "overall_failure_probability_percent": failure_pct,
+                "recommended_varieties": seed_list,
+                "planting_window": recomm_row.get(f"{prefix}Planting_Window")
             },
             "fertilizer": {
-                "soil_values": soil_values
+                "soil_values": soil_values,
+                "recommended_fertiliser": fertiliser_advice
             },
             "advisory": {
                 "risk_level": risk_level,
@@ -88,6 +123,7 @@ class NandiWardEngine:
                     "heat": heat,
                     "drought": drought
                 },
+                "risk_warning_text": risk_warning_text,
                 "explanation": explanation
             }
         }
