@@ -1,38 +1,11 @@
 # app/api/endpoints/nandi_seed.py
 
 from fastapi import APIRouter
-from pydantic import BaseModel
-from app.services.nandi.raster_engine import get_suitability, get_risks
+from app.services.nandi.engine import analyze
 
-router = APIRouter()
-
-
-class NandiRequest(BaseModel):
-    lat: float
-    lon: float
-    season: str = "LongRains"
+router = APIRouter(prefix="/nandi", tags=["Nandi Engine"])
 
 
-@router.post("/nandi/suitability")
-def nandi_suitability(request: NandiRequest):
-
-    suitability = get_suitability(
-        request.lat,
-        request.lon,
-        request.season
-    )
-
-    risks = get_risks(
-        request.lat,
-        request.lon,
-        request.season
-    )
-
-    return {
-        "location": {
-            "lat": request.lat,
-            "lon": request.lon
-        },
-        "suitability": suitability,
-        "risks": risks
-    }
+@router.post("/analyze")
+def run_analysis(request: dict):
+    return analyze(request)
