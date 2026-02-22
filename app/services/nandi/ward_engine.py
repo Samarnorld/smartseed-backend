@@ -24,27 +24,18 @@ class NandiWardEngine:
     @staticmethod
     def get_ward_recommendation(ward_name: str, season: str) -> Dict:
 
-        # -------------------------
-        # File existence check
-        # -------------------------
         if not os.path.exists(WARD_FACTORS_PATH):
             return {"error": "Ward factors file not found"}
 
         if not os.path.exists(WARD_RECOMM_PATH):
             return {"error": "Ward recommendation file not found"}
 
-        # -------------------------
-        # Load data
-        # -------------------------
         factors_df = pd.read_csv(WARD_FACTORS_PATH)
         recomm_df = pd.read_csv(WARD_RECOMM_PATH)
 
         factors_df.columns = [c.strip() for c in factors_df.columns]
         recomm_df.columns = [c.strip() for c in recomm_df.columns]
 
-        # -------------------------
-        # Filter ward
-        # -------------------------
         factors_filtered = factors_df[
             factors_df["Ward"].str.lower() == ward_name.lower()
         ]
@@ -65,18 +56,16 @@ class NandiWardEngine:
         # Suitability
         # -------------------------
         suitability_text = recomm_row.get(f"{prefix}Suitability", "")
-
         match = re.search(r"(\d+(\.\d+)?)%", str(suitability_text))
         suitability_percent = float(match.group(1)) if match else None
 
         # -------------------------
-        # Seed Parsing (robust)
+        # Seed Parsing
         # -------------------------
         seeds_raw = recomm_row.get(f"{prefix}Seeds", "")
         seed_list = []
 
         if isinstance(seeds_raw, str) and seeds_raw.strip():
-
             seeds_clean = seeds_raw.replace(
                 "Top recommended seed varieties:", ""
             ).strip()
@@ -86,11 +75,15 @@ class NandiWardEngine:
             for part in parts:
                 part = part.strip()
                 if not part.endswith(")"):
-                    part = part + ")"
+                    part += ")"
                 seed_list.append(part)
 
+        top_seed_name = None
+        if seed_list:
+            top_seed_name = seed_list[0].split("(")[0].strip()
+
         # -------------------------
-        # Yield Projection (top seed)
+        # Yield Projection
         # -------------------------
         expected_without_fert = None
         expected_with_fert = None
@@ -130,7 +123,7 @@ class NandiWardEngine:
             risk_level = "Low"
 
         # -------------------------
-        # Confidence (convert 0–1 → %)
+        # Confidence
         # -------------------------
         confidence_score_percent = None
         confidence_tier = None
@@ -139,7 +132,7 @@ class NandiWardEngine:
             confidence_score_percent = round(float(uncertainty_raw) * 100, 2)
 
             if confidence_score_percent < 5:
-                confidence_tier = 1   # Very High Confidence
+                confidence_tier = 1
             elif confidence_score_percent < 10:
                 confidence_tier = 2
             elif confidence_score_percent < 20:
@@ -155,6 +148,35 @@ class NandiWardEngine:
             "bedrock_depth": factors_row.get(f"{prefix}bedrock_depth_ward_avg"),
             "texture_score": factors_row.get(f"{prefix}texture_score"),
         }
+
+        fertiliser_text = recomm_row.get(f"{prefix}Fertiliser")
+
+        # -------------------------
+        # Farmer Decision Summary
+        # -------------------------
+        decision_summary = None
+
+        if top_seed_name and suitability_percent:
+
+            decision_summary = (
+                f"For {season}, plant {top_seed_name}. "
+                f"Suitability is {suitability_percent}%. "
+                f"Risk level is {risk_level}. "
+            )
+
+            if expected_with_fert:
+                decision_summary += (
+                    f"Expected yield with fertiliser: {expected_with_fert}. "
+                )
+
+            if recomm_row.get(f"{prefix}Planting_Window"):
+                decision_summary += recomm_row.get(f"{prefix}Planting_Window") + " "
+
+            if confidence_tier:
+                decision_summary += (
+                    f"Confidence level: Tier {confidence_tier} "
+                    f"({confidence_score_percent}% uncertainty)."
+                )
 
         # -------------------------
         # Final Response
@@ -175,7 +197,7 @@ class NandiWardEngine:
             },
             "fertilizer": {
                 "soil_values": soil_values,
-                "recommended_fertiliser": recomm_row.get(f"{prefix}Fertiliser")
+                "recommended_fertiliser": fertiliser_text
             },
             "advisory": {
                 "risk_level": risk_level,
@@ -186,6 +208,7 @@ class NandiWardEngine:
                     "heat": factors_row.get(f"{prefix}Heat_Risk_ward_pct"),
                     "drought": factors_row.get(f"{prefix}Drought_Risk_ward_pct")
                 },
-                "risk_warning_text": recomm_row.get(f"{prefix}Risk_Warnings")
+                "risk_warning_text": recomm_row.get(f"{prefix}Risk_Warnings"),
+                "decision_summary": decision_summary
             }
         }
