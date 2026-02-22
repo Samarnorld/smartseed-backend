@@ -12,12 +12,6 @@ WARD_FACTORS_PATH = os.path.join(
     "Nandi_Ward_Factors.csv"
 )
 
-WARD_RECOMM_PATH = os.path.join(
-    BASE_PATH,
-    "WardAggregatedData",
-    "Nandi_Ward_Recommendations.csv"
-)
-
 
 class NandiWardEngine:
 
@@ -27,91 +21,73 @@ class NandiWardEngine:
         if not os.path.exists(WARD_FACTORS_PATH):
             return {"error": "Ward factors file not found"}
 
-        if not os.path.exists(WARD_RECOMM_PATH):
-            return {"error": "Ward recommendations file not found"}
+        df = pd.read_csv(WARD_FACTORS_PATH)
 
-        factors_df = pd.read_csv(WARD_FACTORS_PATH)
-        recomm_df = pd.read_csv(WARD_RECOMM_PATH)
+        df.columns = [c.strip() for c in df.columns]
 
-        factors = factors_df[
-            (factors_df["Ward"] == ward_name) &
-            (factors_df["Season"] == season)
-        ]
+        ward_df = df[df["Ward"].str.lower() == ward_name.lower()]
 
-        recomm = recomm_df[
-            (recomm_df["Ward"] == ward_name) &
-            (recomm_df["Season"] == season)
-        ]
-
-        if factors.empty:
+        if ward_df.empty:
             return {"error": "Ward not found"}
 
-        row = factors.iloc[0]
+        row = ward_df.iloc[0]
 
-        suitability = row.get("Suitability_Mean")
-        failure = row.get("Failure_Probability")
+        prefix = "LR_" if season == "LongRains" else "SR_"
 
-        # Soil raw averages
+        # -------------------------
+        # Suitability & Risk
+        # -------------------------
+        suitability = row.get(f"{prefix}Suitability_Mean")
+        failure = row.get(f"{prefix}Failure_Probability")
+
+        cold = row.get(f"{prefix}Cold_Risk_ward_pct")
+        heat = row.get(f"{prefix}Heat_Risk_ward_pct")
+        drought = row.get(f"{prefix}Drought_Risk_ward_pct")
+
+        # -------------------------
+        # Soil values (ward averages)
+        # -------------------------
         soil_values = {
-            "N": row.get("total_nitrogen"),
-            "P": row.get("phosphorus"),
-            "K": row.get("potassium"),
-            "pH": row.get("ph"),
-            "organic_carbon": row.get("organic_carbon"),
-            "magnesium": row.get("magnesium"),
-            "zinc": row.get("zinc"),
-            "bedrock_depth": row.get("bedrock_depth"),
-            "stone_content": row.get("stone_content"),
-            "texture": row.get("texture"),
+            "stone_content": row.get(f"{prefix}stone_content_ward_avg"),
+            "bedrock_depth": row.get(f"{prefix}bedrock_depth_ward_avg"),
+            "texture_score": row.get(f"{prefix}texture_score"),
         }
 
-        # Fertilizer logic (same as pixel)
-        advice = []
-
-        if soil_values["N"] and soil_values["N"] < 0.2:
-            advice.append("Apply Nitrogen fertilizer (CAN/Urea)")
-
-        if soil_values["P"] and soil_values["P"] < 15:
-            advice.append("Apply Phosphorus fertilizer (DAP/TSP)")
-
-        if soil_values["K"] and soil_values["K"] < 100:
-            advice.append("Apply Potassium fertilizer (MOP)")
-
-        if soil_values["pH"] and soil_values["pH"] < 5.5:
-            advice.append("Apply Agricultural Lime")
-
-        dominant_factor = row.get("Most_Limiting_Factor")
-
-        risk_level = "Low"
-        if failure and failure > 0.5:
+        # -------------------------
+        # Risk classification
+        # -------------------------
+        if failure is None:
+            risk_level = "Unknown"
+        elif failure > 50:
             risk_level = "High"
-        elif failure and failure > 0.2:
+        elif failure > 20:
             risk_level = "Moderate"
+        else:
+            risk_level = "Low"
 
         explanation = (
-            f"Ward shows {risk_level} production risk. "
-            f"The dominant limiting factor is {dominant_factor}."
+            f"{ward_name} ward shows {risk_level} seasonal production risk "
+            f"during {season}. "
+            f"Drought risk: {drought}%, Heat risk: {heat}%, Cold risk: {cold}%."
         )
-
-        varieties = []
-        if not recomm.empty:
-            varieties = recomm.iloc[0].get("Top_3_Varieties")
 
         return {
             "ward": ward_name,
             "season": season,
             "seed_recommendation": {
                 "mean_suitability_score": suitability,
-                "overall_failure_probability": failure,
-                "recommended_varieties": varieties,
+                "overall_failure_probability_percent": failure
             },
             "fertilizer": {
-                "soil_values": soil_values,
-                "fertilizer_recommendations": advice
+                "soil_values": soil_values
             },
             "advisory": {
                 "risk_level": risk_level,
-                "dominant_limiting_factor": dominant_factor,
+                "risk_breakdown_percent": {
+                    "cold": cold,
+                    "heat": heat,
+                    "drought": drought
+                },
                 "explanation": explanation
             }
         }
