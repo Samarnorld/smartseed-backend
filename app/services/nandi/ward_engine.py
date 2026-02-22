@@ -24,18 +24,27 @@ class NandiWardEngine:
     @staticmethod
     def get_ward_recommendation(ward_name: str, season: str) -> Dict:
 
+        # -------------------------
+        # File existence check
+        # -------------------------
         if not os.path.exists(WARD_FACTORS_PATH):
             return {"error": "Ward factors file not found"}
 
         if not os.path.exists(WARD_RECOMM_PATH):
             return {"error": "Ward recommendation file not found"}
 
+        # -------------------------
+        # Load data
+        # -------------------------
         factors_df = pd.read_csv(WARD_FACTORS_PATH)
         recomm_df = pd.read_csv(WARD_RECOMM_PATH)
 
         factors_df.columns = [c.strip() for c in factors_df.columns]
         recomm_df.columns = [c.strip() for c in recomm_df.columns]
 
+        # -------------------------
+        # Filter ward
+        # -------------------------
         factors_filtered = factors_df[
             factors_df["Ward"].str.lower() == ward_name.lower()
         ]
@@ -56,11 +65,12 @@ class NandiWardEngine:
         # Suitability
         # -------------------------
         suitability_text = recomm_row.get(f"{prefix}Suitability", "")
+
         match = re.search(r"(\d+(\.\d+)?)%", str(suitability_text))
         suitability_percent = float(match.group(1)) if match else None
 
         # -------------------------
-        # Seeds Parsing
+        # Seed Parsing (robust)
         # -------------------------
         seeds_raw = recomm_row.get(f"{prefix}Seeds", "")
         seed_list = []
@@ -80,7 +90,7 @@ class NandiWardEngine:
                 seed_list.append(part)
 
         # -------------------------
-        # Yield Projection (from first seed)
+        # Yield Projection (top seed)
         # -------------------------
         expected_without_fert = None
         expected_with_fert = None
@@ -105,10 +115,10 @@ class NandiWardEngine:
                 expected_with_fert = match_yes.group(1).strip()
 
         # -------------------------
-        # Risk & Confidence
+        # Risk
         # -------------------------
         failure_pct = factors_row.get(f"{prefix}Overall_Failure_ward_pct")
-        uncertainty = factors_row.get(f"{prefix}Overall_Failure_uncertainty")
+        uncertainty_raw = factors_row.get(f"{prefix}Overall_Failure_uncertainty")
 
         if failure_pct is None:
             risk_level = "Unknown"
@@ -119,17 +129,23 @@ class NandiWardEngine:
         else:
             risk_level = "Low"
 
-        # Confidence Tier
-        if uncertainty is None:
-            confidence_tier = None
-        elif uncertainty < 5:
-            confidence_tier = 1
-        elif uncertainty < 10:
-            confidence_tier = 2
-        elif uncertainty < 20:
-            confidence_tier = 3
-        else:
-            confidence_tier = 4
+        # -------------------------
+        # Confidence (convert 0–1 → %)
+        # -------------------------
+        confidence_score_percent = None
+        confidence_tier = None
+
+        if uncertainty_raw is not None:
+            confidence_score_percent = round(float(uncertainty_raw) * 100, 2)
+
+            if confidence_score_percent < 5:
+                confidence_tier = 1   # Very High Confidence
+            elif confidence_score_percent < 10:
+                confidence_tier = 2
+            elif confidence_score_percent < 20:
+                confidence_tier = 3
+            else:
+                confidence_tier = 4
 
         # -------------------------
         # Soil
@@ -163,7 +179,7 @@ class NandiWardEngine:
             },
             "advisory": {
                 "risk_level": risk_level,
-                "confidence_score_percent": uncertainty,
+                "confidence_score_percent": confidence_score_percent,
                 "confidence_tier": confidence_tier,
                 "risk_breakdown_percent": {
                     "cold": factors_row.get(f"{prefix}Cold_Risk_ward_pct"),
