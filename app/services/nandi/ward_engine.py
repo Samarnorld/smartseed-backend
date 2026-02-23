@@ -1,7 +1,10 @@
 # app/services/nandi/ward_engine.py
+
 import pandas as pd
 import os
 import re
+import math
+import numpy as np
 from typing import Dict
 from .config import BASE_PATH
 
@@ -17,6 +20,29 @@ WARD_RECOMM_PATH = os.path.join(
     "WardAggregatedData",
     "Nandi_Ward_Recommendations.csv"
 )
+
+
+def clean_floats(obj):
+    """
+    Recursively converts:
+    - NaN
+    - Infinity
+    - numpy floats
+    into JSON-safe values (None).
+    """
+    if isinstance(obj, dict):
+        return {k: clean_floats(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_floats(v) for v in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, np.floating):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return float(obj)
+    return obj
 
 
 class NandiWardEngine:
@@ -78,9 +104,7 @@ class NandiWardEngine:
                     part += ")"
                 seed_list.append(part)
 
-        top_seed_name = None
-        if seed_list:
-            top_seed_name = seed_list[0].split("(")[0].strip()
+        top_seed_name = seed_list[0].split("(")[0].strip() if seed_list else None
 
         # -------------------------
         # Yield Projection
@@ -113,6 +137,9 @@ class NandiWardEngine:
         failure_pct = factors_row.get(f"{prefix}Overall_Failure_ward_pct")
         uncertainty_raw = factors_row.get(f"{prefix}Overall_Failure_uncertainty")
 
+        if pd.isna(failure_pct):
+            failure_pct = None
+
         if failure_pct is None:
             risk_level = "Unknown"
         elif failure_pct > 50:
@@ -128,7 +155,7 @@ class NandiWardEngine:
         confidence_score_percent = None
         confidence_tier = None
 
-        if uncertainty_raw is not None:
+        if not pd.isna(uncertainty_raw):
             confidence_score_percent = round(float(uncertainty_raw) * 100, 2)
 
             if confidence_score_percent < 5:
@@ -150,14 +177,19 @@ class NandiWardEngine:
         }
 
         fertiliser_text = recomm_row.get(f"{prefix}Fertiliser")
+
         # -------------------------
-        # Farmer Decision Summary (Human-Readable)
+        # Decision Summary
         # -------------------------
         decision_summary = None
 
         if top_seed_name and suitability_percent:
 
-            season_readable = "Long Rains season" if season == "LongRains" else "Short Rains season"
+            season_readable = (
+                "Long Rains season"
+                if season == "LongRains"
+                else "Short Rains season"
+            )
 
             decision_summary = (
                 f"In {ward_name}, the upcoming {season_readable} looks "
@@ -170,7 +202,7 @@ class NandiWardEngine:
                 f"as overall land suitability is {suitability_percent}%. "
             )
 
-            if risk_level != "Unknown":
+            if risk_level != "Unknown" and failure_pct is not None:
                 decision_summary += (
                     f"Production risk is considered {risk_level.lower()}, "
                     f"with an estimated failure probability of {round(failure_pct, 2)}%. "
@@ -191,10 +223,11 @@ class NandiWardEngine:
                     f"This recommendation is based on a Tier {confidence_tier} "
                     f"confidence level ({confidence_score_percent}% model uncertainty)."
                 )
+
         # -------------------------
         # Final Response
         # -------------------------
-        return {
+        response = {
             "ward": ward_name,
             "season": season,
             "seed_recommendation": {
@@ -225,3 +258,5 @@ class NandiWardEngine:
                 "decision_summary": decision_summary
             }
         }
+
+        return clean_floats(response)
