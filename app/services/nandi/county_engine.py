@@ -160,35 +160,34 @@ class NandiCountyEngine:
 
         county_summary = (
             f"For the upcoming {season_readable}, maize production conditions "
-            f"across Nandi County are assessed as {suitability_class.lower()}. "
+            f"across Nandi County are expected to be {suitability_class.lower()}. "
         )
 
         if suitability_percent is not None:
             county_summary += (
-                f"County-wide average land suitability is {suitability_percent}%, "
+                f"Average land suitability is estimated at {suitability_percent}%, "
             )
 
         if failure_percent is not None:
             county_summary += (
-                f"with an estimated seasonal production risk of {failure_percent}%. "
+                f"with a projected seasonal production risk of {failure_percent}%. "
             )
 
         county_summary += (
-            f"The primary climatic stress this season is {dominant_factor}. "
+            f"Drought is identified as the primary climatic constraint this season. "
         )
 
         if top_seed:
             county_summary += (
-                f"{top_seed} emerges as the most consistently recommended maize "
-                f"variety across wards. "
+                f"{top_seed} stands out as the most consistently recommended "
+                f"maize variety across wards. "
             )
 
         if yield_with:
             county_summary += (
-                f"Under proper fertiliser management, expected county-level yields "
-                f"range between {yield_with}. "
+                f"With appropriate fertiliser management, expected yields "
+                f"range between {yield_with}."
             )
-
         # Final Response
         return {
             "county": "Nandi",
