@@ -6,7 +6,6 @@ import pandas as pd
 from typing import Dict
 from .config import FINAL_OUTPUTS, BASE_PATH
 
-
 COUNTY_PATH = os.path.join(FINAL_OUTPUTS, "County_Averages.json")
 
 WARD_RECOMM_PATH = os.path.join(
@@ -15,12 +14,12 @@ WARD_RECOMM_PATH = os.path.join(
     "Nandi_Ward_Recommendations.csv"
 )
 
-
 class NandiCountyEngine:
 
     @staticmethod
     def get_county_summary(season: str) -> Dict:
 
+        # Load County JSON
         if not os.path.exists(COUNTY_PATH):
             return {"error": "County averages file not found"}
 
@@ -34,18 +33,23 @@ class NandiCountyEngine:
         scores = season_data.get("scores", {})
         raw = season_data.get("raw", {})
 
-        # -------------------------
         # Convert Scores to %
-        # -------------------------
         mean_suitability = scores.get("temp")
         failure = scores.get("prob_overall_fail")
 
-        suitability_percent = round(mean_suitability * 100, 2) if mean_suitability else None
-        failure_percent = round(failure * 100, 2) if failure else None
+        suitability_percent = (
+            round(mean_suitability * 100, 2)
+            if mean_suitability is not None
+            else None
+        )
 
-        # -------------------------
+        failure_percent = (
+            round(failure * 100, 2)
+            if failure is not None
+            else None
+        )
+
         # Suitability Class
-        # -------------------------
         if suitability_percent is None:
             suitability_class = "Unknown"
         elif suitability_percent >= 80:
@@ -55,9 +59,7 @@ class NandiCountyEngine:
         else:
             suitability_class = "Marginal"
 
-        # -------------------------
-        # Risk Level
-        # -------------------------
+        # Risk Classification
         if failure_percent is None:
             risk_level = "Unknown"
         elif failure_percent > 50:
@@ -67,9 +69,7 @@ class NandiCountyEngine:
         else:
             risk_level = "Low"
 
-        # -------------------------
         # Dominant Limiting Factor
-        # -------------------------
         stress_dict = {
             "heat": scores.get("prob_heat"),
             "drought": scores.get("prob_drought"),
@@ -82,22 +82,19 @@ class NandiCountyEngine:
             key=lambda k: stress_dict.get(k) or 0
         )
 
-        # -------------------------
         # County Seed Recommendation
-        # Logic: choose most frequently recommended top seed across wards
-        # -------------------------
         top_seed = None
-        yield_without = None
-        yield_with = None
+        yield_without_values = []
+        yield_with_values = []
 
         if os.path.exists(WARD_RECOMM_PATH):
 
             df = pd.read_csv(WARD_RECOMM_PATH)
-
             prefix = "LR_" if season == "LongRains" else "SR_"
 
             seed_counts = {}
 
+            # Count most frequent top seed
             for seed_string in df[f"{prefix}Seeds"].dropna():
 
                 if "Top recommended seed varieties:" in seed_string:
@@ -110,65 +107,89 @@ class NandiCountyEngine:
                 if parts:
                     first_seed = parts[0]
                     seed_name = first_seed.split("(")[0].strip()
-
                     seed_counts[seed_name] = seed_counts.get(seed_name, 0) + 1
-
-                    # Extract yield from first occurrence
-                    if not yield_with:
-                        match_yes = re.search(
-                            r"Expected w/ Fertiliser:\s*([\d\.\-\s]+t/Ha)",
-                            first_seed
-                        )
-                        if match_yes:
-                            yield_with = match_yes.group(1).strip()
-
-                    if not yield_without:
-                        match_no = re.search(
-                            r"Expected w/o Fertiliser:\s*([\d\.\-\s]+t/Ha)",
-                            first_seed
-                        )
-                        if match_no:
-                            yield_without = match_no.group(1).strip()
 
             if seed_counts:
                 top_seed = max(seed_counts, key=seed_counts.get)
 
-        # -------------------------
-        # County Bulletin Summary
-        # -------------------------
-        season_readable = "Long Rains season" if season == "LongRains" else "Short Rains season"
+                # Now compute average yields ONLY for that seed
+                for seed_string in df[f"{prefix}Seeds"].dropna():
+
+                    if top_seed in seed_string:
+
+                        match_no = re.search(
+                            r"Expected w/o Fertiliser:\s*([\d\.]+)\s*-\s*([\d\.]+)",
+                            seed_string
+                        )
+
+                        match_yes = re.search(
+                            r"Expected w/ Fertiliser:\s*([\d\.]+)\s*-\s*([\d\.]+)",
+                            seed_string
+                        )
+
+                        if match_no:
+                            low = float(match_no.group(1))
+                            high = float(match_no.group(2))
+                            yield_without_values.append((low, high))
+
+                        if match_yes:
+                            low = float(match_yes.group(1))
+                            high = float(match_yes.group(2))
+                            yield_with_values.append((low, high))
+
+        # Compute averaged yield ranges
+        yield_without = None
+        yield_with = None
+
+        if yield_without_values:
+            avg_low = sum(v[0] for v in yield_without_values) / len(yield_without_values)
+            avg_high = sum(v[1] for v in yield_without_values) / len(yield_without_values)
+            yield_without = f"{round(avg_low, 2)} - {round(avg_high, 2)} t/Ha"
+
+        if yield_with_values:
+            avg_low = sum(v[0] for v in yield_with_values) / len(yield_with_values)
+            avg_high = sum(v[1] for v in yield_with_values) / len(yield_with_values)
+            yield_with = f"{round(avg_low, 2)} - {round(avg_high, 2)} t/Ha"
+
+        # Refined County Bulletin Summary
+        season_readable = (
+            "Long Rains season"
+            if season == "LongRains"
+            else "Short Rains season"
+        )
+
         county_summary = (
             f"For the upcoming {season_readable}, maize production conditions "
             f"across Nandi County are assessed as {suitability_class.lower()}. "
         )
 
-        if suitability_percent:
+        if suitability_percent is not None:
             county_summary += (
-                f"Average land suitability stands at {suitability_percent}%, "
+                f"County-wide average land suitability is {suitability_percent}%, "
             )
 
-        if failure_percent:
+        if failure_percent is not None:
             county_summary += (
-                f"with a projected seasonal production risk of {failure_percent}%. "
+                f"with an estimated seasonal production risk of {failure_percent}%. "
             )
 
         county_summary += (
-            f"The primary climatic constraint this season is {dominant_factor}. "
+            f"The primary climatic stress this season is {dominant_factor}. "
         )
 
         if top_seed:
             county_summary += (
-                f"The most widely recommended maize variety across wards is {top_seed}. "
+                f"{top_seed} emerges as the most consistently recommended maize "
+                f"variety across wards. "
             )
 
         if yield_with:
             county_summary += (
-                f"Under proper fertiliser management, expected yields range between "
-                f"{yield_with}. "
+                f"Under proper fertiliser management, expected county-level yields "
+                f"range between {yield_with}. "
             )
-        # -------------------------
+
         # Final Response
-        # -------------------------
         return {
             "county": "Nandi",
             "season": season,
