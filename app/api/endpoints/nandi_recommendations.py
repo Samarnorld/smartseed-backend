@@ -69,3 +69,17 @@ def get_county_summary(
         "season": season,
         "data": result
     }
+
+# ADDED: Seed Catalog Endpoint
+@router.get("/nandi/seeds")
+def get_seed_catalog():
+
+    result = NandiSeedEngine.get_seed_catalog()
+
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+
+    return {
+        "aggregation_level": "seed_catalog",
+        "data": result
+    }

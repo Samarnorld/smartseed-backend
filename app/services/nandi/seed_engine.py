@@ -4,7 +4,6 @@ from typing import Dict
 from .config import SEED_DATA, suitability_paths
 from .raster_sampling import sample_raster
 
-
 class NandiSeedEngine:
 
     @staticmethod
@@ -36,4 +35,33 @@ class NandiSeedEngine:
             "uncertainty": round(uncertainty or 0, 3),
             "overall_failure_probability": round(overall_failure or 0, 3),
             "recommended_varieties": top3["Variety"].tolist()
+        }
+
+    # Seed Catalog Method
+    @staticmethod
+    def get_seed_catalog() -> Dict:
+        """
+        Returns all seed varieties being analyzed and total count.
+        Does NOT affect recommendation logic.
+        """
+
+        df = pd.read_excel(SEED_DATA)
+
+        if "Variety" not in df.columns:
+            return {"error": "Variety column not found in seed dataset"}
+
+        varieties = (
+            df["Variety"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .unique()
+            .tolist()
+        )
+
+        varieties_sorted = sorted(varieties)
+
+        return {
+            "total_seed_varieties": len(varieties_sorted),
+            "seed_varieties": varieties_sorted
         }
