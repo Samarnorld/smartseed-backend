@@ -1,0 +1,68 @@
+* [33m42b2873[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m changes
+* [33m70b06f0[m load_boundaries
+* [33m961c4b3[m init_rainfall_db
+* [33me4367e0[m addd polygon support
+* [33m577f5da[m changes
+* [33m2a3fbb9[m soil precompute
+* [33m2c5090b[m changes
+* [33m9ff6efb[m ndvi timeseris corrections
+* [33ma3d2ed0[m formatting ward names for our ussd
+* [33mbca6e03[m changes
+* [33mb46ca18[m changes
+* [33m1ef4bfc[m 'Changes
+* [33mde7391a[m corrected the 0 that comes for historical ndvi baseline
+* [33m49359f0[m new ndvi to reduce gee calls
+* [33m0b51627[m correction on temp precompute
+* [33m18c1a07[m precompution of temperature, few fixes to be done later
+* [33m6e8dea8[m changes
+* [33mee2b15c[m removed temp 98th percentile range
+* [33m4b57280[m 98th percentile for rainfall tiles and temp
+* [33m9b52aa1[m changes
+* [33m66cd667[m changes
+* [33me3c0c14[m precomputing rainfall and caching
+* [33m51aaac1[m Restore boundary-based soil aggregation with grid for points
+* [33mfda98bc[m soil back to normal
+* [33m0c1af35[m Hybrid soil analysis fix
+* [33m64f777c[m Soil precompute with batch sampling
+* [33mc2b381b[m Optimized soil precompute using batch sampling
+* [33me757d85[m Implemented soil grid precompute
+* [33m2e7af7e[m new ussd
+* [33m5dfa9a3[m changes
+* [33m4c0fcec[m remove tiles_engine
+* [33m7f55635[m caching from pngs removed
+* [33mdfbedb7[m changes
+* [33ma5cab9a[m changes
+* [33m05d18d7[m registered the nandi tiles
+* [33mb72d46c[m sms error
+* [33m04e5201[m tiles
+* [33m700adf2[m Added python-multipart for USSD form parsing
+* [33m5f209a1[m Replaced Flask USSD with FastAPI integration
+* [33m3f3ace3[m requirements.txt
+* [33m35c8fcd[m we added caching and also improved on soil tile rendering
+* [33m3456e83[m seed catalog
+* [33m0ebdb0e[m ward numpy null issues
+* [33m2dd1856[m countly bulletin improved
+* [33m3479fe6[m county-engine
+* [33m9908571[m readability - county
+* [33mf6de771[m county level recommendations
+* [33m8cde3cd[m farmers decision
+* [33m6854836[m added ward farmer summary
+* [33m343139f[m solving confidence score errors
+* [33m30c2c7d[m yield with or without fertlizer per ward
+* [33md156467[m Final ward seed parsing fix
+* [33m07e54eb[m Time to sleep boy final ward push solving seed parsing
+* [33me42c7b1[m cleaning ward data
+* [33mc926ee1[m ward issues
+* [33m87b19a5[m ward issues
+* [33m5991ffe[m changes
+* [33m76699b5[m changes
+* [33m6919cb7[m changes
+* [33m59672c9[m recommendations changes
+* [33me7aa707[m changes
+* [33m083c7fb[m recommendation and fertilizees correction
+* [33m4df9ecb[m Add geopandas and spatial dependencies
+* [33m8e406ab[m recommendation engine
+* [33m7fcac33[m Fully fixed numpy serialization for risks
+* [33m1134995[m Switched to file-based Firebase and GEE auth for VPS deployment
+* [33m49df1ab[m Added Nandi suitability raster engine
+* [33m7c860eb[m Initial clean backend commit
