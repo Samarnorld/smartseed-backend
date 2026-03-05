@@ -21,7 +21,7 @@ else:
 CSV_PATH = os.path.join(
     BASE_PATH,
     "WardAggregatedData",
-    "Nandi_Ward_Recommendations_YieldChanges_Final.csv"
+    "Nandi_Ward_Recommendations_YieldChanges.csv"
 )
 try:
     df = pd.read_csv(CSV_PATH)
