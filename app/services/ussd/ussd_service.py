@@ -21,7 +21,7 @@ else:
 CSV_PATH = os.path.join(
     BASE_PATH,
     "WardAggregatedData",
-    "Nandi_Ward_Recommendations.csv"
+    "Nandi_Ward_Recommendations_YieldChanges_Final.csv"
 )
 try:
     df = pd.read_csv(CSV_PATH)
@@ -125,7 +125,7 @@ def handle_ussd(session_id: str, phone_number: str, raw_text: str) -> str:
 
         # Pull CSV Data
         ward_row = df.loc[ward_name]
-        seeds_raw = ward_row.get("LR_Seeds", "")
+        seeds_raw = ward_row.get("SMS", "")
 
         if not isinstance(seeds_raw, str) or not seeds_raw.strip():
             return "END No seed data available."
@@ -134,7 +134,7 @@ def handle_ussd(session_id: str, phone_number: str, raw_text: str) -> str:
         first_seed = seeds_raw.split("|")[0].strip()
 
         response_text = (
-            f"END SmartSeed {format_name(ward_name)}:\n"
+            f"END SmartSeed {format_name(ward_name)} Ward:\n"
             f"{first_seed}\n"
             "Full advisory sent via SMS."
         )
@@ -143,7 +143,7 @@ def handle_ussd(session_id: str, phone_number: str, raw_text: str) -> str:
         if sms:
             try:
                 sms_message = (
-                    f"SmartSeed {format_name(ward_name)} - Long Rains\n"
+                    f"SmartSeed {format_name(ward_name)} Ward Recommendations:\n"
                     f"{seeds_raw}"
                 )
                 sms.send(sms_message, [phone_number])
