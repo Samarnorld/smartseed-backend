@@ -40,9 +40,14 @@ def get_monthly_rainfall(
             bestEffort=True
         )
         precip = stats.get("precipitation")
+        safe_precip = ee.Algorithms.If(
+            precip,
+            precip,
+            0
+        )
         return ee.Dictionary({
             "month": m,
-            "total_mm": ee.Algorithms.If(precip, precip, None)
+            "total_mm": safe_precip
         })
     results = months.map(monthly_sum)
     return ee.List(results).getInfo()
