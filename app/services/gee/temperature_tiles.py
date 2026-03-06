@@ -16,15 +16,26 @@ def get_temperature_tiles(
     )
 
     temp_c = (
-        collection
-        .mean()
-        .subtract(273.15)
-        .clip(geometry)
+    collection
+    .mean()
+    .subtract(273.15)
+    .clip(geometry)
+)
+
+# Compute 98th percentile
+    stats = temp_c.reduceRegion(
+        reducer=ee.Reducer.percentile([98]),
+        geometry=geometry,
+        scale=11132,
+        bestEffort=True,
+        maxPixels=1e13
     )
+
+    p98 = stats.get("temperature_2m_p98").getInfo()
 
     vis_params = {
         "min": 0,
-        "max": 40,
+        "max": p98,
         "palette": [
             "#2c7bb6",
             "#abd9e9",
@@ -33,7 +44,6 @@ def get_temperature_tiles(
             "#d7191c"
         ]
     }
-
     map_dict = temp_c.getMapId(vis_params)
 
     return {

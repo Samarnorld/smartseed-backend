@@ -21,10 +21,19 @@ def get_rainfall_tiles(
     # Total rainfall over period
     rainfall = collection.sum().clip(geometry)
 
+    # Compute 98th percentile for visualization scaling
+    stats = rainfall.reduceRegion(
+        reducer=ee.Reducer.percentile([98]),
+        geometry=geometry,
+        scale=5566,
+        bestEffort=True,
+        maxPixels=1e13
+    )
+    p98 = stats.get("precipitation_p98").getInfo()
     # Visualization parameters
     vis_params = {
         "min": 0,
-        "max": 2000,  # mm
+        "max": p98,
         "palette": [
             "ffffff",
             "ccebc5",
