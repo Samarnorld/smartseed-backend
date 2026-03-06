@@ -45,7 +45,7 @@ def get_monthly_rainfall(
         end = start.advance(1, "month")
 
         monthly = collection.filterDate(start, end)
-        total_img = monthly.sum()
+        total_img = monthly.sum().select("precipitation")
         stats = total_img.reduceRegion(
             reducer=ee.Reducer.mean(),
             geometry=geometry,
