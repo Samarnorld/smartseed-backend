@@ -1,19 +1,27 @@
 # services/gee/rainfall_monthly.py
 import ee
 from datetime import datetime
+
 CHIRPS = "UCSB-CHG/CHIRPS/DAILY"
 
 def get_monthly_rainfall(
     geometry: ee.Geometry,
     year: int
 ):
+
     today = datetime.utcnow()
     current_year = today.year
+
+    # Prevent future year
     if year > current_year:
         return []
+
     year_end = f"{year}-12-31"
+
+    # Partial current year
     if year == current_year:
         year_end = today.strftime("%Y-%m-%d")
+
     collection = (
         ee.ImageCollection(CHIRPS)
         .filterBounds(geometry)
@@ -21,33 +29,50 @@ def get_monthly_rainfall(
         .select("precipitation")
     )
 
-    # Adding month property to each image
-    def add_month(img):
-        return img.set("month", img.date().get("month"))
-    collection = collection.map(add_month)
-    months = ee.List.sequence(1, 12)
-    def monthly_sum(m):
-        m = ee.Number(m)
-        monthly = collection.filter(
-            ee.Filter.eq("month", m)
-        )
+    results = []
+
+    for month in range(1, 13):
+
+        # Skip future months
+        if year == current_year and month > today.month:
+            results.append({
+                "month": month,
+                "total_mm": None
+            })
+            continue
+
+        start = ee.Date.fromYMD(year, month, 1)
+        end = start.advance(1, "month")
+
+        monthly = collection.filterDate(start, end)
+
+        image_count = monthly.size().getInfo()
+
+        # No images for that month
+        if image_count == 0:
+            results.append({
+                "month": month,
+                "total_mm": None
+            })
+            continue
+
         total_img = monthly.sum()
+
         stats = total_img.reduceRegion(
             reducer=ee.Reducer.mean(),
             geometry=geometry,
             scale=5566,
-            maxPixels=1e13,
-            bestEffort=True
+            bestEffort=True,
+            maxPixels=1e13
         )
-        precip = stats.get("precipitation")
-        safe_precip = ee.Algorithms.If(
-            precip,
-            precip,
-            0
-        )
-        return ee.Dictionary({
-            "month": m,
-            "total_mm": safe_precip
+
+        stats_dict = stats.getInfo()
+
+        total_mm = stats_dict.get("precipitation")
+
+        results.append({
+            "month": month,
+            "total_mm": total_mm
         })
-    results = months.map(monthly_sum)
-    return ee.List(results).getInfo()
+
+    return results
