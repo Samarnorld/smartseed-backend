@@ -37,13 +37,12 @@ def _reduce_to_mean(image, geometry):
         reducer=ee.Reducer.mean(),
         geometry=geometry,
         scale=5566,
-        maxPixels=1e13
+        maxPixels=1e13,
+        bestEffort=True
     )
     value = stats.get("precipitation")
-    return ee.Algorithms.If(
-        value,
-        value,
-        0
+    return ee.Number(
+        ee.Algorithms.If(value, value, 0)
     )
 
 # SEASONAL ANOMALY

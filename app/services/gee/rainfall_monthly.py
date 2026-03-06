@@ -61,24 +61,4 @@ def get_monthly_rainfall(
             "month": month,
             "total_mm": total_mm
         })
-
-        total_img = monthly.sum()
-
-        stats = total_img.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=geometry,
-            scale=5566,
-            bestEffort=True,
-            maxPixels=1e13
-        )
-
-        stats_dict = stats.getInfo()
-
-        total_mm = stats_dict.get("precipitation")
-
-        results.append({
-            "month": month,
-            "total_mm": total_mm
-        })
-
     return results
