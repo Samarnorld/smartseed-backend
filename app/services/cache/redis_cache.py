@@ -6,6 +6,7 @@ from hashlib import md5
 
 CACHE_7_DAYS = 7 * 24 * 60 * 60
 CACHE_30_DAYS = 30 * 24 * 60 * 60
+CACHE_90_DAYS = 90 * 24 * 60 * 60
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
