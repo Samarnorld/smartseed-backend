@@ -32,16 +32,18 @@ def _compute_anomaly(current_val, baseline_val):
 
     return anomaly_percent, interpretation
 
-
 def _reduce_to_mean(image, geometry):
-    return (
-        image.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=geometry,
-            scale=5566,
-            maxPixels=1e13
-        )
-        .get("precipitation")
+    stats = image.reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=geometry,
+        scale=5566,
+        maxPixels=1e13
+    )
+    value = stats.get("precipitation")
+    return ee.Algorithms.If(
+        value,
+        value,
+        0
     )
 
 # SEASONAL ANOMALY
