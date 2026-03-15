@@ -9,7 +9,7 @@ from app.services.cache.redis_cache import (
     get_cache,
     set_cache,
     build_cache_key,
-    CACHE_30_DAYS
+    CACHE_1_HOUR
 )
 
 router = APIRouter()
@@ -37,5 +37,5 @@ def soil_tiles(request: SoilTilesRequest):
         request.datasets,
         request.depth
     )
-    set_cache(cache_key, tiles, CACHE_30_DAYS)
+    set_cache(cache_key, tiles, CACHE_1_HOUR)
     return tiles
