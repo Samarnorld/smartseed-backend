@@ -3,7 +3,7 @@ import redis
 import json
 import os
 from hashlib import md5
-
+CACHE_1_HOUR = 60 * 60
 CACHE_7_DAYS = 7 * 24 * 60 * 60
 CACHE_30_DAYS = 30 * 24 * 60 * 60
 CACHE_90_DAYS = 90 * 24 * 60 * 60

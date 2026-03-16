@@ -8,7 +8,7 @@ from app.services.cache.redis_cache import (
     get_cache,
     set_cache,
     build_cache_key,
-    CACHE_7_DAYS
+    CACHE_1_HOUR
 )
 
 router = APIRouter(
@@ -44,5 +44,5 @@ def temperature_tiles(
         "units": "°C",
         **tiles
     }
-    set_cache(cache_key, result, CACHE_7_DAYS)
+    set_cache(cache_key, result, CACHE_1_HOUR)
     return result
