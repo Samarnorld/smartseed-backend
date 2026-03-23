@@ -131,18 +131,26 @@ def handle_ussd(session_id: str, phone_number: str, raw_text: str) -> str:
             return "END No seed data available."
 
         # Short USSD version
-        # Take only first recommendation
-        first_seed = seeds_raw.split("|")[0].strip()
+        # Base text parts
+        header = f"SmartSeed {format_name(ward_name)} Ward:"
+        footer = "Full advisory via SMS."
 
-        # HARD LIMIT to avoid Safaricom pagination
-        MAX_LENGTH = 140
-        short_seed = first_seed[:MAX_LENGTH]
+        # Calculate remaining space dynamically
+        MAX_USSD = 160  # safe limit under Safaricom
+
+        # Reserve space for header + footer + newlines
+        reserved = len(header) + len(footer) + 4  # spacing buffer
+
+        # Extract first seed and trim dynamically
+        first_seed = seeds_raw.split("|")[0].strip()
+        available_space = MAX_USSD - reserved
+        short_seed = first_seed[:available_space]
 
         response_text = (
-            f"END {format_name(ward_name)}:\n"
-            f"{short_seed}"
+            f"END {header}\n"
+            f"{short_seed}\n"
+            f"{footer}"
         )
-
         # Send Full SMS
         if sms:
             try:
