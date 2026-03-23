@@ -131,12 +131,16 @@ def handle_ussd(session_id: str, phone_number: str, raw_text: str) -> str:
             return "END No seed data available."
 
         # Short USSD version
+        # Take only first recommendation
         first_seed = seeds_raw.split("|")[0].strip()
 
+        # HARD LIMIT to avoid Safaricom pagination
+        MAX_LENGTH = 140
+        short_seed = first_seed[:MAX_LENGTH]
+
         response_text = (
-            f"END SmartSeed {format_name(ward_name)} Ward:\n"
-            f"{first_seed}\n"
-            "Full advisory sent via SMS."
+            f"END {format_name(ward_name)}:\n"
+            f"{short_seed}"
         )
 
         # Send Full SMS
