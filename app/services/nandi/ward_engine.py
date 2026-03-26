@@ -98,10 +98,29 @@ class NandiWardEngine:
 
             parts = seeds_clean.split(") |")
 
+            seed_list = []
+
             for part in parts:
                 part = part.strip()
                 if not part.endswith(")"):
                     part += ")"
+
+                # Inject maturity if missing
+                if "Maturity:" not in part:
+                    seed_name = part.split("(")[0].strip()
+
+                    # TEMP fallback mapping (based on your CSV reality)
+                    maturity_map = {
+                        "H9401": "160 - 190",
+                        "H629": "160 - 210",
+                        "H6218": "150 - 180",
+                    }
+
+                    maturity = maturity_map.get(seed_name)
+
+                    if maturity:
+                        part = part.replace(")", f" | Maturity: {maturity} Days)")
+
                 seed_list.append(part)
 
         top_seed_name = seed_list[0].split("(")[0].strip() if seed_list else None
