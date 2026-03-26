@@ -48,17 +48,23 @@ def get_multi_soil_tiles(
         if min_val == max_val:
             max_val = min_val + 0.01
         map_id = clipped.getMapId({
-            "min": min_val,
-            "max": max_val,
-            "palette": [
-                "blue",
-                "cyan",
-                "yellow",
-                "orange",
-                "red"
-            ],
-        })
-        tiles[dataset] = map_id["tile_fetcher"].url_format
+        "min": min_val,
+        "max": max_val,
+        "palette": [
+            "blue",
+            "cyan",
+            "yellow",
+            "orange",
+            "red"
+        ],
+    })
+
+    tile_url = (
+        f"https://earthengine.googleapis.com/v1/projects/earthengine-legacy/maps/"
+        f"{map_id['mapid']}/tiles/{{z}}/{{x}}/{{y}}?token={map_id['token']}"
+    )
+
+    tiles[dataset] = tile_url
     return {
         "status": "success",
         "depth": depth,
