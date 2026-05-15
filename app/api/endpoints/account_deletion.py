@@ -58,10 +58,23 @@ def request_account_deletion(user: dict = Depends(verify_bearer)) -> Response:
 
 
 @router.post("/users/me/delete-account/confirm", status_code=204)
-def confirm_account_deletion(body: ConfirmBody) -> Response:
-    uid = consume_deletion_token(body.token.strip())
+def confirm_account_deletion(
+    body: ConfirmBody,
+    user: dict = Depends(verify_bearer)
+) -> Response:
+
+    token_uid = consume_deletion_token(body.token.strip())
+    auth_uid = user.get("uid")
+
+    if token_uid != auth_uid:
+        raise HTTPException(
+            403,
+            detail="Deletion token does not match authenticated user."
+        )
+
     try:
-        fb_auth.delete_user(uid)
+        fb_auth.delete_user(auth_uid)
     except fb_auth.UserNotFoundError:
         pass
+
     return Response(status_code=204)
