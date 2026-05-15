@@ -32,6 +32,7 @@ from app.api.endpoints.maize_timeseries import router as maize_timeseries_router
 from app.api.endpoints.maize_suitability import router as maize_suitability_router
 from app.api.endpoints.nandi_recommendations import router as nandi_recommendations_router
 from app.api.endpoints.ussd import router as ussd_router
+from app.api.endpoints.account_deletion import router as account_deletion_router
 from app.core.gee_auth import init_gee
 
 # Import of future modules
@@ -82,6 +83,7 @@ app.include_router(maize_suitability_router, prefix="/api")
 app.include_router(maize_timeseries_router, prefix="/api")
 app.include_router(nandi_recommendations_router, prefix="/api")
 app.include_router(ussd_router)
+app.include_router(account_deletion_router, prefix="/api")
 
 @app.get("/")
 async def root():
