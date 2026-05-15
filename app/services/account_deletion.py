@@ -1,6 +1,6 @@
 """
 Account deletion helpers (JWT link + SMTP).
-Firebase Admin app must already be initialized (see app.core.firebase).
+Firebase Admin app initialized (app.core.firebase).
 """
 from __future__ import annotations
 
@@ -76,9 +76,9 @@ To complete deletion, open this link within 48 hours:
 
 After you open the link, your Firebase account is removed and you will need a new account to sign in to SmartSeed again.
 
-If you did NOT request this, ignore this email — your account will stay active.
+If you did NOT request this, ignore this email - your account will stay active.
 
-— SmartSeed Recommender
+- SmartSeed Recommender
 """
 
     msg = MIMEText(body, "plain", "utf-8")
