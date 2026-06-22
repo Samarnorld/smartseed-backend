@@ -1,11 +1,10 @@
 # app/api/endpoints/boundaries.py
 import logging
-from fastapi import APIRouter, Query, HTTPException, Depends, Request
+from fastapi import APIRouter, Query, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pathlib import Path
 import json
 from app.core.limiter import limiter
-from app.api.deps import get_current_user
 from app.api.schemas import CountyRequest
 
 logger = logging.getLogger(__name__)
@@ -17,8 +16,8 @@ DATA_DIR = BASE_DIR / "data" / "boundaries"
 
 @router.get("/boundaries/counties/{county_name}")
 @limiter.limit("30/minute")
-def get_county_boundary(request: Request, county_name: str, user: dict = Depends(get_current_user)):
-    """Get county boundary data. Requires authentication."""
+def get_county_boundary(request: Request, county_name: str):
+    """Get county boundary data."""
     if county_name.lower() != "nandi":
         logger.warning(f"Boundary request for non-existent county: {county_name}")
         raise HTTPException(status_code=404, detail="County not found")
@@ -39,8 +38,8 @@ def get_county_boundary(request: Request, county_name: str, user: dict = Depends
 
 @router.get("/boundaries/wards")
 @limiter.limit("30/minute")
-def get_wards(request: Request, county: str = Query(...), user: dict = Depends(get_current_user)):
-    """Get ward boundaries for a county. Requires authentication."""
+def get_wards(request: Request, county: str = Query(...)):
+    """Get ward boundaries for a county."""
     if county.lower() != "nandi":
         logger.warning(f"Ward boundary request for non-existent county: {county}")
         raise HTTPException(status_code=404, detail="County not found")
