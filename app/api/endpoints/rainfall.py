@@ -1,8 +1,12 @@
 # app/api/endpoints/rainfall.py
-from fastapi import APIRouter, Depends, Query
+import logging
+from fastapi import APIRouter, Depends, Request, HTTPException
 import ee
 
-from app.api.deps import get_geometry
+from app.core.limiter import limiter
+from app.api.deps import get_current_user
+from app.api.schemas import RainfallAnalysisRequest, RainfallAnnualRequest
+from app.services.gee.geometry import geojson_to_ee
 from app.services.gee.rainfall import (
     compute_rainfall,
     get_annual_rainfall
@@ -14,6 +18,8 @@ from app.services.cache.redis_cache import (
     CACHE_7_DAYS
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/rainfall",
     tags=["Rainfall"]
@@ -21,61 +27,96 @@ router = APIRouter(
 
 # Custom Date Range
 @router.post("/analyze")
-def rainfall_analysis(
-    geometry: ee.Geometry = Depends(get_geometry),
-    start_date: str = Query(...),
-    end_date: str = Query(...)
+@limiter.limit("20/minute")
+def rainfall_analysis(request: Request,
+    req: RainfallAnalysisRequest,
+    user: dict = Depends(get_current_user)
 ):
-    payload = {
-        "geometry": geometry.getInfo(),
-        "start_date": start_date,
-        "end_date": end_date
-    }
-    cache_key = build_cache_key("rainfall_analysis", payload)
-    cached = get_cache(cache_key)
-    if cached:
-        print("REDIS CACHE HIT: rainfall_analysis")
-        return cached
-    print("REDIS CACHE MISS: rainfall_analysis")
-    rainfall = compute_rainfall(
-        geometry=geometry,
-        start_date=start_date,
-        end_date=end_date
-    )
-    result = {
-        "status": "success",
-        "rainfall": rainfall,
-        "units": "mm",
-        "dataset": "CHIRPS"
-    }
-    set_cache(cache_key, result, CACHE_7_DAYS)
-    return result
+    """Analyze rainfall for a custom date range. Requires authentication."""
+    try:
+        geometry = geojson_to_ee(req.geometry)
+        start_date = str(req.start_date)
+        end_date = str(req.end_date)
+        
+        payload = {
+            "geometry": geometry.getInfo(),
+            "start_date": start_date,
+            "end_date": end_date
+        }
+        cache_key = build_cache_key("rainfall_analysis", payload)
+        
+        # Try cache
+        if cache_key:
+            cached = get_cache(cache_key)
+            if cached:
+                logger.info(f"Cache HIT: rainfall_analysis for {user.get('uid')}")
+                return cached
+        
+        logger.info(f"Cache MISS: rainfall_analysis for {user.get('uid')}")
+        rainfall = compute_rainfall(
+            geometry=geometry,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        result = {
+            "status": "success",
+            "rainfall": rainfall,
+            "units": "mm",
+            "dataset": "CHIRPS"
+        }
+        
+        # Store in cache
+        if cache_key:
+            set_cache(cache_key, result, CACHE_7_DAYS)
+        
+        return result
+    except Exception as e:
+        logger.error(f"Rainfall analysis failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 # Annual Rainfall
 @router.post("/annual")
-def annual_rainfall(
-    geometry: ee.Geometry = Depends(get_geometry),
-    year: int = Query(..., ge=1981)
+@limiter.limit("20/minute")
+def annual_rainfall(request: Request,
+    req: RainfallAnnualRequest,
+    user: dict = Depends(get_current_user)
 ):
-    payload = {
-        "geometry": geometry.getInfo(),
-        "year": year
-    }
-    cache_key = build_cache_key("annual_rainfall", payload)
-    cached = get_cache(cache_key)
-    if cached:
-        print("REDIS CACHE HIT: annual_rainfall")
-        return cached
-    print("REDIS CACHE MISS: annual_rainfall")
-    result = get_annual_rainfall(
-        geometry=geometry,
-        year=year
-    )
-    response = {
-        "status": "success",
-        "dataset": "CHIRPS",
-        "units": "mm",
-        **result
-    }
-    set_cache(cache_key, response, CACHE_7_DAYS)
-    return response
+    """Get annual rainfall for a specific year. Requires authentication."""
+    try:
+        geometry = geojson_to_ee(req.geometry)
+        
+        payload = {
+            "geometry": geometry.getInfo(),
+            "year": req.year
+        }
+        cache_key = build_cache_key("annual_rainfall", payload)
+        
+        # Try cache
+        if cache_key:
+            cached = get_cache(cache_key)
+            if cached:
+                logger.info(f"Cache HIT: annual_rainfall for {user.get('uid')}")
+                return cached
+        
+        logger.info(f"Cache MISS: annual_rainfall for {user.get('uid')}")
+        result = get_annual_rainfall(
+            geometry=geometry,
+            year=req.year
+        )
+        
+        response = {
+            "status": "success",
+            "dataset": "CHIRPS",
+            "units": "mm",
+            **result
+        }
+        
+        # Store in cache
+        if cache_key:
+            set_cache(cache_key, response, CACHE_7_DAYS)
+        
+        return response
+    except Exception as e:
+        logger.error(f"Annual rainfall failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Analysis failed")

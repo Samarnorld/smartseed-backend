@@ -1,3 +1,4 @@
+# app/services/account_deletion.py
 """
 Account deletion helpers (JWT link + SMTP).
 Firebase Admin app initialized (app.core.firebase).

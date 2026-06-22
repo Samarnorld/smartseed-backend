@@ -3,10 +3,26 @@
 from dotenv import load_dotenv
 load_dotenv()   
 
+import logging
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from datetime import datetime
+from slowapi.middleware import SlowAPIMiddleware
+from app.core.limiter import limiter
+from app.core.security import (
+    RequestSizeLimitMiddleware,
+    SecurityHeadersMiddleware,
+    ErrorLoggingMiddleware
+)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 from app.api.endpoints import boundaries_router, gee_router
 from app.api.endpoints.location import router as location_router
@@ -35,6 +51,8 @@ from app.api.endpoints.ussd import router as ussd_router
 from app.api.endpoints.account_deletion import router as account_deletion_router
 from app.core.gee_auth import init_gee
 
+# Centralized limiter imported from app.core.limiter
+
 # Import of future modules
 # from app.db.session import get_db
 # from app.api.endpoints import zones, recommendations
@@ -48,16 +66,37 @@ app = FastAPI(
 # startup to initialize GEE
 @app.on_event("startup")
 def startup_event():
+    logger.info("Starting up SmartSeed API...")
     init_gee()
 
-# CORS middleware (allows frontend to talk to backend)
+# CORS middleware - Restrict to specific origins only
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://smartaseed.cliffordgeoconsult.com"
+).split(",")
+
+# Strip whitespace from each origin
+ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS]
+
+logger.info(f"CORS allowed origins: {ALLOWED_ORIGINS}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # This is for development only. I will restrict in production.
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,  # Don't allow credentials for cross-origin
+    allow_methods=["GET", "POST"],  # Only needed methods
+    allow_headers=["authorization", "content-type", "accept"],  # Restrict headers
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 )
+
+# Add security middleware in order
+app.add_middleware(ErrorLoggingMiddleware)  # Should be first to catch all errors
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestSizeLimitMiddleware)
+
+# Rate limiting middleware
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(boundaries_router, prefix="/api")
 app.include_router(location_router, prefix="/api")

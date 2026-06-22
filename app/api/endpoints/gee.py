@@ -9,13 +9,15 @@ router = APIRouter(
 
 @router.get("/health")
 def gee_health():
-    """
-    Fast health check: confirms EE auth + basic access
-    """
-    image = ee.ImageCollection("COPERNICUS/S2_SR").first()
-    info = image.getInfo()
 
-    return {
-        "gee": "connected",
-        "sample_image_type": info["type"]
-    }
+    try:
+        ee.Number(1).getInfo()
+
+        return {
+            "status": "healthy"
+        }
+
+    except Exception:
+        return {
+            "status": "unhealthy"
+        }

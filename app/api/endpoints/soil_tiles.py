@@ -1,11 +1,15 @@
-# app/api/endpoints/soil_tiles.py
-from fastapi import APIRouter
+import logging
+from fastapi import APIRouter, Depends, Request, HTTPException
 from pydantic import BaseModel
 from typing import List
 import ee
 
+from app.core.limiter import limiter
+from app.api.deps import get_current_user
+from app.services.gee.geometry import geojson_to_ee
 from app.services.gee.soil_tiles import get_multi_soil_tiles
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class SoilTilesRequest(BaseModel):
@@ -15,23 +19,23 @@ class SoilTilesRequest(BaseModel):
 
 
 @router.post("/soil/tiles")
-def soil_tiles(request: SoilTilesRequest):
+@limiter.limit("20/minute")
+def soil_tiles(request: Request,
+    payload: SoilTilesRequest,
+    user: dict = Depends(get_current_user)
+):
     try:
-        print("Fetching fresh soil tiles (NO CACHE)")
-
-        ee_geometry = ee.Geometry(request.geometry)
-
+        logger.info(f"Soil tiles request by {user.get('uid')} datasets={payload.datasets}")
+        ee_geometry = geojson_to_ee(payload.geometry)
         tiles = get_multi_soil_tiles(
             ee_geometry,
-            request.datasets,
-            request.depth
+            payload.datasets,
+            payload.depth
         )
-
-        return tiles
-
-    except Exception as e:
-        print("Soil tiles error:", str(e))
         return {
-            "status": "error",
-            "message": str(e)
+            "status": "success",
+            **tiles
         }
+    except Exception as e:
+        logger.error("Soil tiles generation failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate soil tiles")

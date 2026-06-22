@@ -1,9 +1,14 @@
 # app/api/endpoints/boundaries.py
-from fastapi import APIRouter, Query
+import logging
+from fastapi import APIRouter, Query, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from pathlib import Path
 import json
+from app.core.limiter import limiter
+from app.api.deps import get_current_user
+from app.api.schemas import CountyRequest
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Boundaries"])
 
 BASE_DIR = Path(__file__).resolve().parents[3]
@@ -11,28 +16,44 @@ DATA_DIR = BASE_DIR / "data" / "boundaries"
 
 
 @router.get("/boundaries/counties/{county_name}")
-def get_county_boundary(county_name: str):
+@limiter.limit("30/minute")
+def get_county_boundary(request: Request, county_name: str, user: dict = Depends(get_current_user)):
+    """Get county boundary data. Requires authentication."""
     if county_name.lower() != "nandi":
-        return JSONResponse(
-            status_code=404,
-            content={"error": "County not found"}
-        )
+        logger.warning(f"Boundary request for non-existent county: {county_name}")
+        raise HTTPException(status_code=404, detail="County not found")
 
     path = DATA_DIR / "nandi_county.geojson"
 
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            logger.info(f"County boundary requested for: {county_name}")
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"County boundary file not found: {path}")
+        raise HTTPException(status_code=500, detail="Data unavailable")
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in county boundary file: {path}")
+        raise HTTPException(status_code=500, detail="Data unavailable")
 
 
 @router.get("/boundaries/wards")
-def get_wards(county: str = Query(...)):
+@limiter.limit("30/minute")
+def get_wards(request: Request, county: str = Query(...), user: dict = Depends(get_current_user)):
+    """Get ward boundaries for a county. Requires authentication."""
     if county.lower() != "nandi":
-        return JSONResponse(
-            status_code=404,
-            content={"error": "County not found"}
-        )
+        logger.warning(f"Ward boundary request for non-existent county: {county}")
+        raise HTTPException(status_code=404, detail="County not found")
 
     path = DATA_DIR / "nandi_wards.geojson"
 
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            logger.info(f"Ward boundaries requested for: {county}")
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Ward boundary file not found: {path}")
+        raise HTTPException(status_code=500, detail="Data unavailable")
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in ward boundary file: {path}")
+        raise HTTPException(status_code=500, detail="Data unavailable")

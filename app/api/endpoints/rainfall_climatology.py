@@ -1,8 +1,10 @@
 # app/api/endpoints/rainfall_climatology.py
-from fastapi import APIRouter, Depends
+import logging
+from fastapi import APIRouter, Depends, Request, HTTPException
 import ee
 
-from app.api.deps import get_geometry
+from app.core.limiter import limiter
+from app.api.deps import get_current_user, get_geometry
 from app.services.gee.rainfall_climatology import (
     get_monthly_climatology,
     get_annual_climatology
@@ -14,54 +16,68 @@ from app.services.cache.redis_cache import (
     CACHE_90_DAYS
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/rainfall/climatology",
     tags=["Rainfall Climatology"]
 )
 
 @router.post("/monthly")
-def monthly_climatology(
-    geometry: ee.Geometry = Depends(get_geometry)
+@limiter.limit("15/minute")
+def monthly_climatology(request: Request,
+    geometry: ee.Geometry = Depends(get_geometry),
+    user: dict = Depends(get_current_user)
 ):
-    payload = {
-        "geometry": geometry.getInfo()
-    }
-    cache_key = build_cache_key("monthly_climatology", payload)
-    cached = get_cache(cache_key)
-    if cached:
-        print("REDIS CACHE HIT: monthly_climatology")
-        return cached
+    try:
+        payload = {
+            "geometry": geometry.getInfo()
+        }
+        cache_key = build_cache_key("monthly_climatology", payload)
+        cached = get_cache(cache_key)
+        if cached:
+            logger.info(f"Cache HIT: monthly_climatology for {user.get('uid')}")
+            return cached
 
-    print("REDIS CACHE MISS: monthly_climatology")
-    data = get_monthly_climatology(geometry)
-    response = {
-        "status": "success",
-        "dataset": "CHIRPS",
-        "units": "mm",
-        **data
-    }
-    set_cache(cache_key, response, CACHE_90_DAYS)
-    return response
-    
+        logger.info(f"Cache MISS: monthly_climatology for {user.get('uid')}")
+        data = get_monthly_climatology(geometry)
+        response = {
+            "status": "success",
+            "dataset": "CHIRPS",
+            "units": "mm",
+            **data
+        }
+        set_cache(cache_key, response, CACHE_90_DAYS)
+        return response
+    except Exception as e:
+        logger.error("Monthly climatology endpoint failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Analysis failed")
+
 @router.post("/annual")
-def annual_climatology(
-    geometry: ee.Geometry = Depends(get_geometry)
+@limiter.limit("15/minute")
+def annual_climatology(request: Request,
+    geometry: ee.Geometry = Depends(get_geometry),
+    user: dict = Depends(get_current_user)
 ):
-    payload = {
-        "geometry": geometry.getInfo()
-    }
-    cache_key = build_cache_key("annual_climatology", payload)
-    cached = get_cache(cache_key)
-    if cached:
-        print("REDIS CACHE HIT: annual_climatology")
-        return cached
-    print("REDIS CACHE MISS: annual_climatology")
-    data = get_annual_climatology(geometry)
-    response = {
-        "status": "success",
-        "dataset": "CHIRPS",
-        "units": "mm",
-        **data
-    }
-    set_cache(cache_key, response, CACHE_90_DAYS)
-    return response
+    try:
+        payload = {
+            "geometry": geometry.getInfo()
+        }
+        cache_key = build_cache_key("annual_climatology", payload)
+        cached = get_cache(cache_key)
+        if cached:
+            logger.info(f"Cache HIT: annual_climatology for {user.get('uid')}")
+            return cached
+
+        logger.info(f"Cache MISS: annual_climatology for {user.get('uid')}")
+        data = get_annual_climatology(geometry)
+        response = {
+            "status": "success",
+            "dataset": "CHIRPS",
+            "units": "mm",
+            **data
+        }
+        set_cache(cache_key, response, CACHE_90_DAYS)
+        return response
+    except Exception as e:
+        logger.error("Annual climatology endpoint failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Analysis failed")
