@@ -5,7 +5,6 @@ import ee
 from app.core.limiter import limiter
 from app.api.deps import get_current_user, get_geometry
 from app.api.schemas import SeasonEnum
-from app.services.gee.geometry import geojson_to_ee
 from app.services.gee.rainfall_anomaly import (
     get_seasonal_anomaly,
     get_annual_anomaly,
@@ -24,14 +23,14 @@ router = APIRouter(prefix="/rainfall", tags=["Rainfall Anomaly"])
 @router.post("/anomaly/seasonal")
 @limiter.limit("20/minute")
 def seasonal_anomaly(request: Request,
-    geometry: dict,
+    geometry: ee.Geometry = Depends(get_geometry),
     year: int = Query(..., ge=1981, le=2100),
     season: SeasonEnum = Query(...),
     user: dict = Depends(get_current_user)
 ):
     """Get seasonal rainfall anomaly. Requires authentication."""
     try:
-        ee_geometry = geojson_to_ee(geometry)
+        ee_geometry = geometry
         payload = {
             "geometry": ee_geometry.getInfo(),
             "year": year,
@@ -59,13 +58,13 @@ def seasonal_anomaly(request: Request,
 @router.post("/anomaly/annual")
 @limiter.limit("20/minute")
 def annual_anomaly(request: Request,
-    geometry: dict,
+    geometry: ee.Geometry = Depends(get_geometry),
     year: int = Query(..., ge=1981, le=2100),
     user: dict = Depends(get_current_user)
 ):
     """Get annual rainfall anomaly. Requires authentication."""
     try:
-        ee_geometry = geojson_to_ee(geometry)
+        ee_geometry = geometry
         payload = {"geometry": ee_geometry.getInfo(), "year": year}
         cache_key = build_cache_key("annual_anomaly", payload)
         
@@ -89,14 +88,14 @@ def annual_anomaly(request: Request,
 @router.post("/anomaly/monthly")
 @limiter.limit("20/minute")
 def monthly_anomaly(request: Request,
-    geometry: dict,
+    geometry: ee.Geometry = Depends(get_geometry),
     year: int = Query(..., ge=1981, le=2100),
     month: int = Query(..., ge=1, le=12),
     user: dict = Depends(get_current_user)
 ):
     """Get monthly rainfall anomaly. Requires authentication."""
     try:
-        ee_geometry = geojson_to_ee(geometry)
+        ee_geometry = geometry
         payload = {"geometry": ee_geometry.getInfo(), "year": year, "month": month}
         cache_key = build_cache_key("monthly_anomaly", payload)
         
