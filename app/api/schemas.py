@@ -138,8 +138,8 @@ class LocationRequest(BaseModel):
 # ============ Nandi Recommendations ============
 
 class SeasonEnum(str, Enum):
-    LONG_RAINS = "long_rains"
-    SHORT_RAINS = "short_rains"
+    LONG_RAINS = "LongRains"
+    SHORT_RAINS = "ShortRains"
 
 
 class NandiPixelRequest(BaseModel):
