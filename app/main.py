@@ -72,7 +72,9 @@ def startup_event():
 # CORS middleware - Restrict to specific origins only
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "https://smartaseed.cliffordgeoconsult.com"
+    "https://smartaseed.cliffordgeoconsult.com,"
+    "http://localhost:5173,"
+    "http://127.0.0.1:5173"
 ).split(",")
 
 # Strip whitespace from each origin
