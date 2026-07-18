@@ -31,10 +31,16 @@ def seasonal_anomaly(request: Request,
     """Get seasonal rainfall anomaly. Requires authentication."""
     try:
         ee_geometry = geometry
+        season_map = {
+            "LongRains": "long_rains",
+            "ShortRains": "short_rains",
+        }
+        service_season = season_map.get(season.value, season.value)
+
         payload = {
             "geometry": ee_geometry.getInfo(),
             "year": year,
-            "season": season.value
+            "season": service_season
         }
         cache_key = build_cache_key("seasonal_anomaly", payload)
         
@@ -45,7 +51,7 @@ def seasonal_anomaly(request: Request,
                 return cached
         
         logger.info(f"Seasonal anomaly requested by {user.get('uid')} for year {year}")
-        result = get_seasonal_anomaly(ee_geometry, year, season.value)
+        result = get_seasonal_anomaly(ee_geometry, year, service_season)
         response = {"dataset": "CHIRPS", "units": "mm", **result}
         
         if cache_key:
